@@ -1,0 +1,1 @@
+SUBSYSTEM=="ionopi", PROGRAM="/bin/sh -c 'find -L /sys/class/ionopi/ -maxdepth 2 -exec chown root:ionopi {} \; || true'"

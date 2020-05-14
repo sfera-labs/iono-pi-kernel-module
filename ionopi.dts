@@ -1,0 +1,28 @@
+/dts-v1/;
+/plugin/;
+
+/ {
+    compatible = "brcm,bcm2835";
+
+        fragment@0 {
+                target = <&spidev0>;
+                __overlay__ {
+                        status = "disabled";
+                };
+        };
+
+        fragment@1 {
+                target = <&spi0>;
+                __overlay__ {
+                        status = "okay";
+                        #address-cells = <1>;
+                        #size-cells = <0>;
+
+                        ionopi_mcp3204_00: mcp3204@0 {
+                                compatible = "ionopi_mcp3204";
+                                reg = <0>;
+                                spi-max-frequency = <50000>;
+                        };
+                };
+        };
+};
