@@ -57,7 +57,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.0");
+MODULE_VERSION("1.1");
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
@@ -1241,21 +1241,27 @@ static int mcp3204_spi_remove(struct spi_device *spi) {
 	return 0;
 }
 
-static const struct spi_device_id mcp3204_spi_ids[] = {
-	{ "ionopi_mcp3204", 0 },
-	{ }
+const struct of_device_id ionopi_of_match[] = {
+	{ .compatible = "sferalabs,ionopi", },
+	{ },
 };
+MODULE_DEVICE_TABLE( of, ionopi_of_match);
 
-MODULE_DEVICE_TABLE( spi, mcp3204_spi_ids);
+static const struct spi_device_id ionopi_spi_ids[] = {
+	{ "ionopi", 0 },
+	{ },
+};
+MODULE_DEVICE_TABLE( spi, ionopi_spi_ids);
 
 static struct spi_driver mcp3204_spi_driver = {
 	.driver = {
-		.name = "ionopi_mcp3204",
+		.name = "ionopi",
 		.owner = THIS_MODULE,
+		.of_match_table = of_match_ptr(ionopi_of_match),
 	},
 	.probe = mcp3204_spi_probe,
 	.remove = mcp3204_spi_remove,
-	.id_table = mcp3204_spi_ids,
+	.id_table = ionopi_spi_ids,
 };
 
 static void cleanup(void) {
