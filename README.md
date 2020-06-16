@@ -117,7 +117,7 @@ You can use the TTL lines as Wiegand interfaces for keypads or card reader. You 
 |----|:---:|:-:|-----------|
 |w&lt;N&gt;_enabled|R/W|0|Wiegand interface w&lt;N&gt; disabled|
 |w&lt;N&gt;_enabled|R/W|1|Wiegand interface w&lt;N&gt; enabled|
-|w&lt;N&gt;_data|R|&lt;ts&gt; &lt;bits&gt; &lt;data&gt;|Latest data read from wiegand interface w&lt;N&gt;. The first number (&lt;ts&gt;) represents an internal timestamp of the received data, shall be used only to discern newly available data from previous one. &lt;bits&gt; reports the number of bits received (max 64). &lt;data&gt; is sequence of bits received represnted as unsigned integer|
+|w&lt;N&gt;_data|R|&lt;ts&gt; &lt;bits&gt; &lt;data&gt;|Latest data read from wiegand interface w&lt;N&gt;. The first number (&lt;ts&gt;) represents an internal timestamp of the received data, it shall be used only to discern newly available data from the previous one. &lt;bits&gt; reports the number of bits received (max 64). &lt;data&gt; is the sequence of bits received represnted as unsigned integer|
 
 The following parameters can be used to improve noise filtering:
 
