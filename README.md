@@ -138,10 +138,10 @@ The following parameters can be used to improve noise filtering:
 
 |File|R/W|Value|Description|
 |----|:---:|:-:|-----------|
-|w&lt;N&gt;_pulse_width_max|R/W|0|Maximum bit pulse width in &micro;s|
-|w&lt;N&gt;_pulse_width_min|R/W|0|Minimum bit pulse width in &micro;s|
-|w&lt;N&gt;_pulse_itvl_max|R/W|0|Maximum interval between pulses in &micro;s|
-|w&lt;N&gt;_pulse_itvl_min|R/W|0|Minimum interval between pulses in &micro;s|
+|w&lt;N&gt;_pulse_width_max|R/W|&lt;val&gt;|Maximum bit pulse width in &micro;s|
+|w&lt;N&gt;_pulse_width_min|R/W|&lt;val&gt;|Minimum bit pulse width in &micro;s|
+|w&lt;N&gt;_pulse_itvl_max|R/W|&lt;val&gt;|Maximum interval between pulses in &micro;s|
+|w&lt;N&gt;_pulse_itvl_min|R/W|&lt;val&gt;|Minimum interval between pulses in &micro;s|
 
 ### 1-Wire - `/sys/bus/w1/devices/`
 
