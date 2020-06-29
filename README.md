@@ -1,14 +1,29 @@
 # Iono Pi kernel module
 
-Kernel module for using [Iono Pi](https://www.sferalabs.cc/iono-pi/), the Raspberry Pi based industrial PLC, via sysfs.
+Kernel module for using [Iono Pi](https://www.sferalabs.cc/iono-pi/), the Raspberry Pi based industrial PLC, via sysfs files.
 
-For instance, toggle a relay:
+For example, from the shell:
 
-    echo F > /sys/class/ionopi/relay/o1
+Toggle a relay:
+
+    $ echo F > /sys/class/ionopi/relay/o1
     
-Read voltage on AI1:
+Read the voltage on AI1:
 
-    cat /sys/class/ionopi/analog_in/ai1_mv
+    $ cat /sys/class/ionopi/analog_in/ai1_mv
+    
+Or using Python:
+
+    f = open('/sys/class/ionopi/relay/o1', 'w')
+    f.write('F')
+    f.close()
+    print('Relay O1 switched')
+
+    f = open('/sys/class/ionopi/analog_in/ai1_mv', 'r')
+    val = f.read().strip()
+    f.close()
+    print('AI1: ' + val + ' mv')
+
 
 ## Compile and Install
 
