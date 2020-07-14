@@ -58,7 +58,7 @@ If you want to use TTL1 as 1-Wire bus, add this line too:
 
     dtoverlay=w1-gpio
 
-Optionally, to be able to use the `/sys/` files not as super user, create a new group "ionopi" and set it as the module owner group by adding an udev rule:
+Optionally, to be able to use the `/sys/class/ionopi/` files not as super user, create a new group "ionopi" and set it as the module owner group by adding an udev rule:
 
     sudo groupadd ionopi
     sudo cp 99-ionopi.rules /etc/udev/rules.d/
