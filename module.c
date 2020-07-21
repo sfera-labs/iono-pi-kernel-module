@@ -57,7 +57,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.1");
+MODULE_VERSION("1.2");
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
@@ -89,7 +89,7 @@ struct WiegandBean {
 	bool enabled;
 	uint64_t data;
 	int bitCount;
-	struct timespec lastBitTs;
+	struct timespec64 lastBitTs;
 };
 
 static struct class *pDeviceClass;
@@ -852,20 +852,20 @@ static void wiegandReset(struct WiegandBean* w) {
 	w->d1.wasLow = false;
 }
 
-static unsigned long to_usec(struct timespec *t) {
+static unsigned long to_usec(struct timespec64 *t) {
 	return (t->tv_sec * 1000000) + (t->tv_nsec / 1000);
 }
 
-static unsigned long diff_usec(struct timespec *t1, struct timespec *t2) {
-	struct timespec diff;
-	diff = timespec_sub(*t2, *t1);
+static unsigned long diff_usec(struct timespec64 *t1, struct timespec64 *t2) {
+	struct timespec64 diff;
+	diff = timespec64_sub(*t2, *t1);
 	return to_usec(&diff);
 }
 
 static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 		struct pt_regs *regs) {
 	bool isLow;
-	struct timespec now;
+	struct timespec64 now;
 	unsigned long diff;
 	struct WiegandBean* w;
 	struct WiegandLine* l = NULL;
@@ -896,7 +896,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 
 	isLow = gpio_get_value(l->gpio) == 0;
 
-	getrawmonotonic(&now);
+	ktime_get_raw_ts64(&now);
 
 	if (l->wasLow == isLow) {
 		// got the interrupt but didn't change state. Maybe a fast pulse
@@ -908,7 +908,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 
 	if (isLow) {
 		if (w->bitCount != 0) {
-			diff = diff_usec((struct timespec *) &(w->lastBitTs), &now);
+			diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
 
 			if (diff < w->pulseIntervalMin_usec) {
 				// pulse too early
@@ -943,7 +943,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 			return (irq_handler_t) IRQ_HANDLED;
 		}
 
-		diff = diff_usec((struct timespec *) &(w->lastBitTs), &now);
+		diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
 		if (diff < w->pulseWidthMin_usec || diff > w->pulseWidthMax_usec) {
 			// pulse too short or too long
 			goto noise;
@@ -1073,7 +1073,7 @@ static ssize_t devAttrWiegandEnabled_store(struct device* dev,
 
 static ssize_t devAttrWiegandData_show(struct device* dev,
 		struct device_attribute* attr, char *buf) {
-	struct timespec now;
+	struct timespec64 now;
 	unsigned long diff;
 	struct WiegandBean* w;
 	w = getWiegandBean(dev, attr);
@@ -1082,8 +1082,8 @@ static ssize_t devAttrWiegandData_show(struct device* dev,
 		return -ENODEV;
 	}
 
-	getrawmonotonic(&now);
-	diff = diff_usec((struct timespec *) &(w->lastBitTs), &now);
+	ktime_get_raw_ts64(&now);
+	diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
 	if (diff <= w->pulseIntervalMax_usec) {
 		return -EBUSY;
 	}
