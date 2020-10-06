@@ -57,7 +57,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.2");
+MODULE_VERSION("1.3");
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
@@ -769,18 +769,22 @@ static ssize_t devAttrGpioBlink_store(struct device* dev,
 static ssize_t devAttrMcp3204_show(char *buf, unsigned int channel, int mult) {
 	int ret;
 
+	if (!mutex_trylock(&mcp3204_spi_data->lock)) {
+		return -EBUSY;
+	}
+
 	memset(&mcp3204_spi_data->rx_buf, 0, sizeof(mcp3204_spi_data->rx_buf));
 	mcp3204_spi_data->tx_buf = 0b1100000 | (channel << 2);
 
 	ret = spi_sync(mcp3204_spi_data->spi, &mcp3204_spi_data->msg);
-	if (ret < 0) {
-		return ret;
+	if (ret >= 0) {
+		ret = mcp3204_spi_data->rx_buf[0] << 4 | mcp3204_spi_data->rx_buf[1] >> 4;
+		if (mult > 0) {
+			ret = ret * mult / 1000;
+		}
 	}
 
-	ret = mcp3204_spi_data->rx_buf[0] << 4 | mcp3204_spi_data->rx_buf[1] >> 4;
-	if (mult > 0) {
-		ret = ret * mult / 1000;
-	}
+	mutex_unlock(&mcp3204_spi_data->lock);
 
 	return sprintf(buf, "%d\n", ret);
 }
