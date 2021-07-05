@@ -1,6 +1,7 @@
 obj-m += ionopi.o
 
 ionopi-objs := module.o
+ionopi-objs += atecc/atecc.o
 
 all:
 	make -C /lib/modules/$(shell uname -r)/build/ M=$(PWD) modules
