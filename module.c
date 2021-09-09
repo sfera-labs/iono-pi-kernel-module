@@ -12,18 +12,11 @@
  *
  */
 
-#include <linux/delay.h>
-#include <linux/gpio.h>
-#include <linux/init.h>
-#include <linux/interrupt.h>
-#include <linux/kernel.h>
-#include <linux/module.h>
+#include "commons/commons.h"
+#include "wiegand/wiegand.h"
+#include "atecc/atecc.h"
 #include <linux/regulator/consumer.h>
 #include <linux/spi/spi.h>
-#include <linux/time.h>
-#include "atecc/atecc.h"
-
-#define WIEGAND_MAX_BITS 	64
 
 #define GPIO_MODE_IN 		1
 #define GPIO_MODE_OUT		2
@@ -89,21 +82,11 @@ struct DeviceBean {
 	struct DeviceAttrBean *devAttrBeans;
 };
 
-struct WiegandLine {
-	int gpio;
-	unsigned int irq;
-	bool irqRequested;
-	bool wasLow;
-};
-
-struct WiegandBean {
-	struct WiegandLine d0;
-	struct WiegandLine d1;
-	struct WiegandLine *activeLine;
-	unsigned long pulseIntervalMin_usec;
-	unsigned long pulseIntervalMax_usec;
-	unsigned long pulseWidthMin_usec;
-	unsigned long pulseWidthMax_usec;
+struct ClockDataBean {
+	struct TtlLine *clockLine;
+	int dataGpio;
+	unsigned long clockPeriodMin_usec;
+	unsigned long clockPeriodMax_usec;
 	bool enabled;
 	uint64_t data;
 	int bitCount;
@@ -166,69 +149,42 @@ static ssize_t devAttrAi3Raw_show(struct device* dev,
 static ssize_t devAttrAi4Raw_show(struct device* dev,
 		struct device_attribute* attr, char *buf);
 
-static ssize_t devAttrWiegandEnabled_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static struct SharedGpio ttl1 = {
+	.gpio = GPIO_TTL1,
+	.busy = false,
+};
 
-static ssize_t devAttrWiegandEnabled_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+static struct SharedGpio ttl2 = {
+	.gpio = GPIO_TTL2,
+	.busy = false,
+};
 
-static ssize_t devAttrWiegandData_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static struct SharedGpio ttl3 = {
+	.gpio = GPIO_TTL3,
+	.busy = false,
+};
 
-static ssize_t devAttrWiegandPulseIntervalMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
-
-static ssize_t devAttrWiegandPulseIntervalMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
-
-static ssize_t devAttrWiegandPulseIntervalMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
-
-static ssize_t devAttrWiegandPulseIntervalMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
-
-static ssize_t devAttrWiegandPulseWidthMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
-
-static ssize_t devAttrWiegandPulseWidthMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
-
-static ssize_t devAttrWiegandPulseWidthMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
-
-static ssize_t devAttrWiegandPulseWidthMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+static struct SharedGpio ttl4 = {
+	.gpio = GPIO_TTL4,
+	.busy = false,
+};
 
 static struct WiegandBean w1 = {
 	.d0 = {
-		.gpio = GPIO_TTL1,
-		.irqRequested = false,
+		.gpio = &ttl1,
 	},
 	.d1 = {
-		.gpio = GPIO_TTL2,
-		.irqRequested = false,
+		.gpio = &ttl2,
 	},
-	.enabled = false,
-	.pulseWidthMin_usec = 10,
-	.pulseWidthMax_usec = 150,
-	.pulseIntervalMin_usec = 1200,
-	.pulseIntervalMax_usec = 2700,
 };
 
 static struct WiegandBean w2 = {
 	.d0 = {
-		.gpio = GPIO_TTL3,
-		.irqRequested = false,
+		.gpio = &ttl3,
 	},
 	.d1 = {
-		.gpio = GPIO_TTL4,
-		.irqRequested = false,
+		.gpio = &ttl4,
 	},
-	.enabled = false,
-	.pulseWidthMin_usec = 10,
-	.pulseWidthMax_usec = 150,
-	.pulseIntervalMin_usec = 1200,
-	.pulseIntervalMax_usec = 2700,
 };
 
 enum digital_in {
@@ -971,6 +927,17 @@ static struct DeviceAttrBean devAttrBeansWiegand[] = {
 	{
 		.devAttr = {
 			.attr = {
+				.name = "w1_noise",
+				.mode = 0440,
+			},
+			.show = devAttrWiegandNoise_show,
+			.store = NULL,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
 				.name = "w1_pulse_itvl_min",
 				.mode = 0660,
 			},
@@ -1030,6 +997,17 @@ static struct DeviceAttrBean devAttrBeansWiegand[] = {
 				.mode = 0440,
 			},
 			.show = devAttrWiegandData_show,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "w2_noise",
+				.mode = 0440,
+			},
+			.show = devAttrWiegandNoise_show,
+			.store = NULL,
 		}
 	},
 
@@ -1183,16 +1161,6 @@ static int getGpio(struct device* dev, struct device_attribute* attr) {
 		return -1;
 	}
 	return dab->gpio;
-}
-
-static unsigned long to_usec(struct timespec64 *t) {
-	return (t->tv_sec * 1000000) + (t->tv_nsec / 1000);
-}
-
-static unsigned long diff_usec(struct timespec64 *t1, struct timespec64 *t2) {
-	struct timespec64 diff;
-	diff = timespec64_sub(*t2, *t1);
-	return to_usec(&diff);
 }
 
 static ssize_t devAttrGpio_show(struct device* dev,
@@ -1469,366 +1437,6 @@ static ssize_t devAttrAi4Raw_show(struct device* dev,
 	return devAttrMcp3204_show(buf, AI4_MCP_CHANNEL, 0);
 }
 
-static struct WiegandBean* getWiegandBean(struct device* dev,
-		struct device_attribute* attr) {
-	struct DeviceAttrBean* dab;
-	dab = devAttrGetBean(dev, attr);
-	if (dab->devAttr.attr.name[1] == '1') {
-		return &w1;
-	} else {
-		return &w2;
-	}
-}
-
-static ssize_t devAttrWiegandEnabled_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-	return sprintf(buf, w->enabled ? "1\n" : "0\n");
-}
-
-static void wiegandReset(struct WiegandBean* w) {
-	w->enabled = true;
-	w->data = 0;
-	w->bitCount = 0;
-	w->activeLine = NULL;
-	w->d0.wasLow = false;
-	w->d1.wasLow = false;
-}
-
-static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
-		struct pt_regs *regs) {
-	bool isLow;
-	struct timespec64 now;
-	unsigned long diff;
-	struct WiegandBean* w;
-	struct WiegandLine* l = NULL;
-
-	if (w1.enabled) {
-		if (irq == w1.d0.irq) {
-			w = &w1;
-			l = &w1.d0;
-		} else if (irq == w1.d1.irq) {
-			w = &w1;
-			l = &w1.d1;
-		}
-	}
-
-	if (w2.enabled) {
-		if (irq == w2.d0.irq) {
-			w = &w2;
-			l = &w2.d0;
-		} else if (irq == w2.d1.irq) {
-			w = &w2;
-			l = &w2.d1;
-		}
-	}
-
-	if (l == NULL) {
-		return (irq_handler_t) IRQ_HANDLED;
-	}
-
-	isLow = gpio_get_value(l->gpio) == 0;
-
-	ktime_get_raw_ts64(&now);
-
-	if (l->wasLow == isLow) {
-		// got the interrupt but didn't change state. Maybe a fast pulse
-		printk(KERN_ALERT "ionopi: * | repeated interrupt on GPIO %d\n",
-				l->gpio);
-		return (irq_handler_t) IRQ_HANDLED;
-	}
-
-	l->wasLow = isLow;
-
-	if (isLow) {
-		if (w->bitCount != 0) {
-			diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
-
-			if (diff < w->pulseIntervalMin_usec) {
-				// pulse too early
-				goto noise;
-			}
-
-			if (diff > w->pulseIntervalMax_usec) {
-				w->data = 0;
-				w->bitCount = 0;
-			}
-		}
-
-		if (w->activeLine != NULL) {
-			// there's movement on both lines
-			goto noise;
-		}
-
-		w->activeLine = l;
-
-		w->lastBitTs.tv_sec = now.tv_sec;
-		w->lastBitTs.tv_nsec = now.tv_nsec;
-
-	} else {
-		if (w->activeLine != l) {
-			// there's movement on both lines or previous noise
-			goto noise;
-		}
-
-		w->activeLine = NULL;
-
-		if (w->bitCount >= WIEGAND_MAX_BITS) {
-			return (irq_handler_t) IRQ_HANDLED;
-		}
-
-		diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
-		if (diff < w->pulseWidthMin_usec || diff > w->pulseWidthMax_usec) {
-			// pulse too short or too long
-			goto noise;
-		}
-
-		w->data <<= 1;
-		if (l == &w->d1) {
-			w->data |= 1;
-		}
-		w->bitCount++;
-	}
-
-	return (irq_handler_t) IRQ_HANDLED;
-
-	noise:
-	wiegandReset(w);
-	return (irq_handler_t) IRQ_HANDLED;
-}
-
-static void wiegandDisable(struct WiegandBean* w) {
-	w->enabled = false;
-
-	gpio_unexport(w->d0.gpio);
-	gpio_unexport(w->d1.gpio);
-
-	gpio_free(w->d0.gpio);
-	gpio_free(w->d1.gpio);
-
-	if (w->d0.irqRequested) {
-		free_irq(w->d0.irq, NULL);
-		w->d0.irqRequested = false;
-	}
-
-	if (w->d1.irqRequested) {
-		free_irq(w->d1.irq, NULL);
-		w->d1.irqRequested = false;
-	}
-}
-
-static ssize_t devAttrWiegandEnabled_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
-	struct WiegandBean* w;
-	bool enable;
-	bool isW1;
-	int result = 0;
-	char reqName[] = "ionopi_wN_dN";
-
-	w = getWiegandBean(dev, attr);
-
-	if (buf[0] == '0') {
-		enable = false;
-	} else if (buf[0] == '1') {
-		enable = true;
-	} else {
-		return -EINVAL;
-	}
-
-	if (enable) {
-		isW1 = w == &w1;
-		if (isW1) {
-			reqName[8] = '1';
-		} else {
-			reqName[8] = '2';
-		}
-
-		reqName[11] = '0';
-		gpio_request(w->d0.gpio, reqName);
-		reqName[11] = '1';
-		gpio_request(w->d1.gpio, reqName);
-
-		result = gpio_direction_input(w->d0.gpio);
-		if (!result) {
-			result = gpio_direction_input(w->d1.gpio);
-		}
-
-		if (result) {
-			printk(KERN_ALERT "ionopi: * | error setting up wiegand GPIOs\n");
-			enable = false;
-		} else {
-			gpio_set_debounce(w->d0.gpio, 0);
-			gpio_set_debounce(w->d1.gpio, 0);
-			gpio_export(w->d0.gpio, false);
-			gpio_export(w->d1.gpio, false);
-
-			w->d0.irq = gpio_to_irq(w->d0.gpio);
-			w->d1.irq = gpio_to_irq(w->d1.gpio);
-
-			reqName[11] = '0';
-			result = request_irq(w->d0.irq,
-					(irq_handler_t) wiegandDataIrqHandler,
-					IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-					reqName, NULL);
-
-			if (result) {
-				printk(
-						KERN_ALERT "ionopi: * | error registering wiegand D0 irq handler\n");
-				enable = false;
-			} else {
-				w->d0.irqRequested = true;
-
-				reqName[11] = '1';
-				result = request_irq(w->d1.irq,
-						(irq_handler_t) wiegandDataIrqHandler,
-						IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-						reqName, NULL);
-
-				if (result) {
-					printk(
-							KERN_ALERT "ionopi: * | error registering wiegand D1 irq handler\n");
-					enable = false;
-				} else {
-					w->d1.irqRequested = true;
-				}
-			}
-		}
-	}
-
-	if (enable) {
-		wiegandReset(w);
-	} else {
-		wiegandDisable(w);
-	}
-
-	if (result) {
-		return result;
-	}
-	return count;
-}
-
-static ssize_t devAttrWiegandData_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct timespec64 now;
-	unsigned long diff;
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	if (!w->enabled) {
-		return -ENODEV;
-	}
-
-	ktime_get_raw_ts64(&now);
-	diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
-	if (diff <= w->pulseIntervalMax_usec) {
-		return -EBUSY;
-	}
-
-	return sprintf(buf, "%lu %d %llu\n", to_usec(&w->lastBitTs), w->bitCount,
-			w->data);
-}
-
-static ssize_t devAttrWiegandPulseIntervalMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	return sprintf(buf, "%lu\n", w->pulseIntervalMin_usec);
-}
-
-static ssize_t devAttrWiegandPulseIntervalMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
-	int ret;
-	unsigned long val;
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	ret = kstrtol(buf, 10, &val);
-	if (ret < 0) {
-		return ret;
-	}
-
-	w->pulseIntervalMin_usec = val;
-
-	return count;
-}
-
-static ssize_t devAttrWiegandPulseIntervalMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	return sprintf(buf, "%lu\n", w->pulseIntervalMax_usec);
-}
-
-static ssize_t devAttrWiegandPulseIntervalMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
-	int ret;
-	unsigned long val;
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	ret = kstrtol(buf, 10, &val);
-	if (ret < 0) {
-		return ret;
-	}
-
-	w->pulseIntervalMax_usec = val;
-
-	return count;
-}
-
-static ssize_t devAttrWiegandPulseWidthMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	return sprintf(buf, "%lu\n", w->pulseWidthMin_usec);
-}
-
-static ssize_t devAttrWiegandPulseWidthMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
-	int ret;
-	unsigned long val;
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	ret = kstrtol(buf, 10, &val);
-	if (ret < 0) {
-		return ret;
-	}
-
-	w->pulseWidthMin_usec = val;
-
-	return count;
-}
-
-static ssize_t devAttrWiegandPulseWidthMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	return sprintf(buf, "%lu\n", w->pulseWidthMax_usec);
-}
-
-static ssize_t devAttrWiegandPulseWidthMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
-	int ret;
-	unsigned long val;
-	struct WiegandBean* w;
-	w = getWiegandBean(dev, attr);
-
-	ret = kstrtol(buf, 10, &val);
-	if (ret < 0) {
-		return ret;
-	}
-
-	w->pulseWidthMax_usec = val;
-
-	return count;
-}
-
 static int mcp3204_spi_probe(struct spi_device *spi) {
 	int ret;
 
@@ -2078,6 +1686,9 @@ static int __init ionopi_init(void) {
 		}
 		di++;
 	}
+
+	wiegandAdd(&w1);
+	wiegandAdd(&w2);
 
 	printk(KERN_INFO "ionopi: - | ready\n");
 	return 0;
