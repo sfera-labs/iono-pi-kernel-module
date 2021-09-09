@@ -1534,7 +1534,8 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 
 	if (l->wasLow == isLow) {
 		// got the interrupt but didn't change state. Maybe a fast pulse
-		printk(KERN_ALERT "ionopi: * | repeated interrupt on GPIO %d\n", l->gpio);
+		printk(KERN_ALERT "ionopi: * | repeated interrupt on GPIO %d\n",
+				l->gpio);
 		return (irq_handler_t) IRQ_HANDLED;
 	}
 
@@ -1672,7 +1673,8 @@ static ssize_t devAttrWiegandEnabled_store(struct device* dev,
 					reqName, NULL);
 
 			if (result) {
-				printk(KERN_ALERT "ionopi: * | error registering wiegand D0 irq handler\n");
+				printk(
+						KERN_ALERT "ionopi: * | error registering wiegand D0 irq handler\n");
 				enable = false;
 			} else {
 				w->d0.irqRequested = true;
@@ -1684,7 +1686,8 @@ static ssize_t devAttrWiegandEnabled_store(struct device* dev,
 						reqName, NULL);
 
 				if (result) {
-					printk(KERN_ALERT "ionopi: * | error registering wiegand D1 irq handler\n");
+					printk(
+							KERN_ALERT "ionopi: * | error registering wiegand D1 irq handler\n");
 					enable = false;
 				} else {
 					w->d1.irqRequested = true;
@@ -1830,7 +1833,7 @@ static int mcp3204_spi_probe(struct spi_device *spi) {
 	int ret;
 
 	mcp3204_spi_data = devm_kzalloc(&spi->dev, sizeof(struct mcp3204_data),
-			GFP_KERNEL);
+	GFP_KERNEL);
 	if (!mcp3204_spi_data) {
 		return -ENOMEM;
 	}
@@ -1879,13 +1882,13 @@ const struct of_device_id ionopi_of_match[] = {
 	{ .compatible = "sferalabs,ionopi", },
 	{ },
 };
-MODULE_DEVICE_TABLE( of, ionopi_of_match);
+MODULE_DEVICE_TABLE(of, ionopi_of_match);
 
 static const struct spi_device_id ionopi_spi_ids[] = {
 	{ "ionopi", 0 },
 	{ },
 };
-MODULE_DEVICE_TABLE( spi, ionopi_spi_ids);
+MODULE_DEVICE_TABLE(spi, ionopi_spi_ids);
 
 static struct spi_driver mcp3204_spi_driver = {
 	.driver = {
@@ -1961,7 +1964,7 @@ static void cleanup(void) {
 				}
 				if (devices[di].devAttrBeans[ai].debBean != NULL) {
 					free_irq(devices[di].devAttrBeans[ai].debBean->debIrqNum,
-							NULL);
+					NULL);
 				}
 				ai++;
 			}
@@ -2007,7 +2010,8 @@ static int __init ionopi_init(void) {
 		devices[di].pDevice = device_create(pDeviceClass, NULL, 0, NULL,
 				devices[di].name);
 		if (IS_ERR(devices[di].pDevice)) {
-			printk(KERN_ALERT "ionopi: * | failed to create device '%s'\n", devices[di].name);
+			printk(KERN_ALERT "ionopi: * | failed to create device '%s'\n",
+					devices[di].name);
 			goto fail;
 		}
 
@@ -2016,7 +2020,8 @@ static int __init ionopi_init(void) {
 			result = device_create_file(devices[di].pDevice,
 					&devices[di].devAttrBeans[ai].devAttr);
 			if (result) {
-				printk(KERN_ALERT "ionopi: * | failed to create device file '%s/%s'\n",
+				printk(
+				KERN_ALERT "ionopi: * | failed to create device file '%s/%s'\n",
 						devices[di].name,
 						devices[di].devAttrBeans[ai].devAttr.attr.name);
 				goto fail;
@@ -2030,9 +2035,11 @@ static int __init ionopi_init(void) {
 
 				gpio_request(devices[di].devAttrBeans[ai].gpio, gpioReqName);
 				if (devices[di].devAttrBeans[ai].gpioMode == GPIO_MODE_OUT) {
-					result = gpio_direction_output(devices[di].devAttrBeans[ai].gpio, false);
+					result = gpio_direction_output(
+							devices[di].devAttrBeans[ai].gpio, false);
 				} else {
-					result = gpio_direction_input(devices[di].devAttrBeans[ai].gpio);
+					result = gpio_direction_input(
+							devices[di].devAttrBeans[ai].gpio);
 				}
 				if (result) {
 					printk(KERN_ALERT "ionopi: * | error setting up GPIO %d\n",
@@ -2044,14 +2051,14 @@ static int __init ionopi_init(void) {
 			if (devices[di].devAttrBeans[ai].debBean != NULL) {
 				if (!devices[di].devAttrBeans[ai].debBean->debIrqNum) {
 					devices[di].devAttrBeans[ai].debBean->debIrqNum =
-					gpio_to_irq(
-							devices[di].devAttrBeans[ai].debBean->gpio);
+							gpio_to_irq(
+									devices[di].devAttrBeans[ai].debBean->gpio);
 					if (request_irq(
-									devices[di].devAttrBeans[ai].debBean->debIrqNum,
-									(void *) gpio_deb_irq_handler,
-									IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
-									devices[di].devAttrBeans[ai].debBean->debIrqDevName,
-									NULL)) {
+							devices[di].devAttrBeans[ai].debBean->debIrqNum,
+							(void *) gpio_deb_irq_handler,
+							IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
+							devices[di].devAttrBeans[ai].debBean->debIrqDevName,
+							NULL)) {
 						printk(
 								KERN_ALERT "ionopi: * | cannot register IRQ of %s in device %s\n",
 								devices[di].devAttrBeans[ai].devAttr.attr.name,
@@ -2063,8 +2070,8 @@ static int __init ionopi_init(void) {
 					devices[di].devAttrBeans[ai].debBean->debValue =
 					DEBOUNCE_STATE_NOT_DEFINED;
 					devices[di].devAttrBeans[ai].debBean->debPastValue =
-					gpio_get_value(
-							devices[di].devAttrBeans[ai].debBean->gpio);
+							gpio_get_value(
+									devices[di].devAttrBeans[ai].debBean->gpio);
 				}
 			}
 			ai++;
@@ -2086,5 +2093,5 @@ static void __exit ionopi_exit(void) {
 	printk(KERN_INFO "ionopi: - | exit\n");
 }
 
-module_init( ionopi_init);
-module_exit( ionopi_exit);
+module_init(ionopi_init);
+module_exit(ionopi_exit);
