@@ -44,6 +44,8 @@ void wiegandDisable(struct WiegandBean* w) {
 			w->d1.irqRequested = false;
 		}
 
+		w->d0.gpio->busy = false;
+		w->d1.gpio->busy = false;
 		w->enabled = false;
 	}
 }
@@ -339,7 +341,6 @@ ssize_t devAttrWiegandPulseIntervalMax_store(struct device* dev,
 
 	return count;
 }
-
 
 ssize_t devAttrWiegandPulseWidthMin_show(struct device* dev,
 		struct device_attribute* attr, char *buf) {

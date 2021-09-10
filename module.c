@@ -82,17 +82,6 @@ struct DeviceBean {
 	struct DeviceAttrBean *devAttrBeans;
 };
 
-struct ClockDataBean {
-	struct TtlLine *clockLine;
-	int dataGpio;
-	unsigned long clockPeriodMin_usec;
-	unsigned long clockPeriodMax_usec;
-	bool enabled;
-	uint64_t data;
-	int bitCount;
-	struct timespec64 lastBitTs;
-};
-
 static struct class *pDeviceClass;
 
 static ssize_t devAttrGpio_show(struct device* dev,

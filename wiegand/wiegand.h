@@ -11,6 +11,7 @@ struct WiegandLine {
 };
 
 struct WiegandBean {
+	char id;
 	struct WiegandLine d0;
 	struct WiegandLine d1;
 	struct WiegandLine *activeLine;
@@ -23,7 +24,6 @@ struct WiegandBean {
 	int bitCount;
 	int noise;
 	struct timespec64 lastBitTs;
-	char id;
 };
 
 void wiegandAdd(struct WiegandBean* w);
