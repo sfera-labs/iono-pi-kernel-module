@@ -14,6 +14,7 @@
 
 #include "commons/commons.h"
 #include "wiegand/wiegand.h"
+#include "clockdata/clockdata.h"
 #include "atecc/atecc.h"
 #include <linux/regulator/consumer.h>
 #include <linux/spi/spi.h>
@@ -174,6 +175,16 @@ static struct WiegandBean w2 = {
 	.d1 = {
 		.gpio = &ttl4,
 	},
+};
+
+static struct ClockDataBean cd1 = {
+	.dataLine = &ttl1,
+	.clockLine = &ttl2,
+};
+
+static struct ClockDataBean cd2 = {
+	.dataLine = &ttl3,
+	.clockLine = &ttl4,
 };
 
 enum digital_in {
@@ -1047,6 +1058,120 @@ static struct DeviceAttrBean devAttrBeansWiegand[] = {
 	{ }
 };
 
+static struct DeviceAttrBean devAttrBeansClockData[] = {
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd1_enabled",
+				.mode = 0660,
+			},
+			.show = devAttrClockDataEnabled_show,
+			.store = devAttrClockDataEnabled_store,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd1_data",
+				.mode = 0440,
+			},
+			.show = devAttrClockDataData_show,
+			.store = NULL,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd1_noise",
+				.mode = 0440,
+			},
+			.show = devAttrClockDataNoise_show,
+			.store = NULL,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd1_clock_period_min",
+				.mode = 0660,
+			},
+			.show = devAttrClockDataClockPeriodMin_show,
+			.store = devAttrClockDataClockPeriodMin_store,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd1_clock_period_max",
+				.mode = 0660,
+			},
+			.show = devAttrClockDataClockPeriodMax_show,
+			.store = devAttrClockDataClockPeriodMax_store,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd2_enabled",
+				.mode = 0660,
+			},
+			.show = devAttrClockDataEnabled_show,
+			.store = devAttrClockDataEnabled_store,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd2_data",
+				.mode = 0440,
+			},
+			.show = devAttrClockDataData_show,
+			.store = NULL,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd2_noise",
+				.mode = 0440,
+			},
+			.show = devAttrClockDataNoise_show,
+			.store = NULL,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd2_clock_period_min",
+				.mode = 0660,
+			},
+			.show = devAttrClockDataClockPeriodMin_show,
+			.store = devAttrClockDataClockPeriodMin_store,
+		}
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "cd2_clock_period_max",
+				.mode = 0660,
+			},
+			.show = devAttrClockDataClockPeriodMax_show,
+			.store = devAttrClockDataClockPeriodMax_store,
+		}
+	},
+
+	{ }
+};
+
 static struct DeviceAttrBean devAttrBeansAtecc[] = {
 	{
 		.devAttr = {
@@ -1091,6 +1216,11 @@ static struct DeviceBean devices[] = {
 	{
 		.name = "wiegand",
 		.devAttrBeans = devAttrBeansWiegand,
+	},
+
+	{
+		.name = "clock_data",
+		.devAttrBeans = devAttrBeansClockData,
 	},
 
 	{
@@ -1576,6 +1706,9 @@ static void cleanup(void) {
 
 	wiegandDisable(&w1);
 	wiegandDisable(&w2);
+
+	clockDataDisable(&cd1);
+	clockDataDisable(&cd2);
 }
 
 static int __init ionopi_init(void) {
@@ -1678,6 +1811,9 @@ static int __init ionopi_init(void) {
 
 	wiegandAdd(&w1);
 	wiegandAdd(&w2);
+
+	clockDataAdd(&cd1);
+	clockDataAdd(&cd2);
 
 	printk(KERN_INFO "ionopi: - | ready\n");
 	return 0;
