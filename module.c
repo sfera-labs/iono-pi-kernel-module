@@ -54,7 +54,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.5");
+MODULE_VERSION("1.6");
 
 struct DebounceBean {
 	int gpio;

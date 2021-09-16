@@ -155,14 +155,20 @@ You can use the TTL lines as Wiegand interfaces for keypads or card reader. You 
 |w&lt;N&gt;_enabled|R/W|1|Wiegand interface w&lt;N&gt; enabled|
 |w&lt;N&gt;_data|R|&lt;ts&gt; &lt;bits&gt; &lt;data&gt;|Latest data read from wiegand interface w&lt;N&gt;. The first number (&lt;ts&gt;) represents an internal timestamp of the received data, it shall be used only to discern newly available data from the previous one. &lt;bits&gt; reports the number of bits received (max 64). &lt;data&gt; is the sequence of bits received represnted as unsigned integer|
 
-The following parameters can be used to improve noise filtering:
+The following properties can be used to improve noise detection and filtering. The w&lt;N&gt;_noise property reports the latest event and is reset to 0 after being read.
 
 |File|R/W|Value|Description|
 |----|:---:|:-:|-----------|
-|w&lt;N&gt;_pulse_width_max|R/W|&lt;val&gt;|Maximum bit pulse width in &micro;s|
-|w&lt;N&gt;_pulse_width_min|R/W|&lt;val&gt;|Minimum bit pulse width in &micro;s|
-|w&lt;N&gt;_pulse_itvl_max|R/W|&lt;val&gt;|Maximum interval between pulses in &micro;s|
-|w&lt;N&gt;_pulse_itvl_min|R/W|&lt;val&gt;|Minimum interval between pulses in &micro;s|
+|w&lt;N&gt;_pulse_width_max|R/W|&lt;val&gt;|Maximum bit pulse width accepted, in &micro;s|
+|w&lt;N&gt;_pulse_width_min|R/W|&lt;val&gt;|Minimum bit pulse width accepted, in &micro;s|
+|w&lt;N&gt;_pulse_itvl_max|R/W|&lt;val&gt;|Maximum interval between pulses accepted, in &micro;s|
+|w&lt;N&gt;_pulse_itvl_min|R/W|&lt;val&gt;|Minimum interval between pulses accepted, in &micro;s|
+|w&lt;N&gt;_noise|R|0|No noise|
+|w&lt;N&gt;_noise|R|10|Fast pulses on lines|
+|w&lt;N&gt;_noise|R|11|Pulses interval too short|
+|w&lt;N&gt;_noise|R|12/13|Concurrent movement on both D0/D1 lines|
+|w&lt;N&gt;_noise|R|14|Pulse too short|
+|w&lt;N&gt;_noise|R|15|Pulse too long|
 
 ### Secure Element - `/sys/class/ionopi/sec_elem/`
 
