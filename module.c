@@ -1187,7 +1187,7 @@ static ssize_t devAttrGpio_store(struct device* dev,
 static ssize_t devAttrGpioDeb_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct timespec64 now;
-	unsigned long diff;
+	unsigned long long diff;
 	int actualGPIOStatus;
 	struct DeviceAttrBean *dab;
 	int res;
@@ -1271,7 +1271,7 @@ static ssize_t devAttrGpioDebOnCnt_show(struct device *dev,
 	struct DeviceAttrBean
 	* dab = container_of(attr, struct DeviceAttrBean, devAttr);
 	struct timespec64 now;
-	unsigned long diff;
+	unsigned long long diff;
 	int actualGPIOStatus;
 	unsigned long res;
 
@@ -1297,7 +1297,7 @@ static ssize_t devAttrGpioDebOffCnt_show(struct device *dev,
 	struct DeviceAttrBean
 	*dab = container_of(attr, struct DeviceAttrBean, devAttr);
 	struct timespec64 now;
-	unsigned long diff;
+	unsigned long long diff;
 	int actualGPIOStatus;
 	unsigned long res;
 
@@ -1501,7 +1501,7 @@ static struct spi_driver mcp3204_spi_driver = {
 static irqreturn_t gpio_deb_irq_handler(int irq, void *dev_id) {
 	struct timespec64 now;
 	int db = 0;
-	unsigned long diff;
+	unsigned long long diff;
 	int actualGPIOStatus;
 
 	ktime_get_raw_ts64(&now);

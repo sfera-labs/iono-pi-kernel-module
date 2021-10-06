@@ -14,8 +14,8 @@ struct SharedGpio {
 	bool busy;
 };
 
-unsigned long to_usec(struct timespec64 *t);
+unsigned long long to_usec(struct timespec64 *t);
 
-unsigned long diff_usec(struct timespec64 *t1, struct timespec64 *t2);
+unsigned long long diff_usec(struct timespec64 *t1, struct timespec64 *t2);
 
 #endif
