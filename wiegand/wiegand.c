@@ -54,7 +54,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 		struct pt_regs *regs) {
 	bool isLow;
 	struct timespec64 now;
-	unsigned long diff;
+	unsigned long long diff;
 	struct WiegandBean* w;
 	struct WiegandLine* l = NULL;
 	int i;
@@ -262,7 +262,7 @@ ssize_t devAttrWiegandEnabled_store(struct device* dev,
 ssize_t devAttrWiegandData_show(struct device* dev,
 		struct device_attribute* attr, char *buf) {
 	struct timespec64 now;
-	unsigned long diff;
+	unsigned long long diff;
 	struct WiegandBean* w;
 	w = getWiegandBean(attr);
 
@@ -276,7 +276,7 @@ ssize_t devAttrWiegandData_show(struct device* dev,
 		return -EBUSY;
 	}
 
-	return sprintf(buf, "%lu %d %llu\n", to_usec(&w->lastBitTs), w->bitCount,
+	return sprintf(buf, "%llu %d %llu\n", to_usec(&w->lastBitTs), w->bitCount,
 			w->data);
 }
 
