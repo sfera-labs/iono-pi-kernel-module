@@ -27,6 +27,8 @@ Or using Python:
 
 ## Compile and Install
 
+*For installation on Ubuntu [read this](https://github.com/sfera-labs/knowledge-base/blob/main/raspberrypi/kernel-modules-ubuntu.md).*
+
 Make sure your system is updated:
 
     sudo apt update
