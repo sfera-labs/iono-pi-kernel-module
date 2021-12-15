@@ -83,7 +83,9 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 
 	if (l->wasLow == isLow) {
 		// got the interrupt but didn't change state. Maybe a fast pulse
-		w->noise = 10;
+		if (w->noise == 0) {
+			w->noise = 10;
+		}
 		return (irq_handler_t) IRQ_HANDLED;
 	}
 
