@@ -58,10 +58,11 @@ MODULE_VERSION("1.8");
 
 struct DebounceBean {
 	int gpio;
-	const char* debIrqDevName;
+	const char *debIrqDevName;
 	int debValue;
 	int debPastValue;
 	int debIrqNum;
+	bool debIrqRequested;
 	struct timespec64 lastDebIrqTs;
 	unsigned long debOnMinTime_usec;
 	unsigned long debOffMinTime_usec;
@@ -84,59 +85,59 @@ struct DeviceBean {
 
 static struct class *pDeviceClass;
 
-static ssize_t devAttrGpio_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrGpio_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrGpio_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+static ssize_t devAttrGpio_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-static ssize_t devAttrGpioDeb_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrGpioDeb_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrGpioDebMsOn_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrGpioDebMsOn_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrGpioDebMsOn_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+static ssize_t devAttrGpioDebMsOn_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-static ssize_t devAttrGpioDebMsOff_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrGpioDebMsOff_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrGpioDebMsOff_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+static ssize_t devAttrGpioDebMsOff_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-static ssize_t devAttrGpioDebOnCnt_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrGpioDebOnCnt_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrGpioDebOffCnt_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrGpioDebOffCnt_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrGpioBlink_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+static ssize_t devAttrGpioBlink_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-static ssize_t devAttrAi1Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi1Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi2Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi2Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi3Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi3Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi4Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi4Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi1Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi1Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi2Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi2Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi3Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi3Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-static ssize_t devAttrAi4Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+static ssize_t devAttrAi4Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
 static struct SharedGpio ttl1 = {
 	.gpio = GPIO_TTL1,
@@ -189,6 +190,7 @@ static struct DebounceBean debounceBeans[] = {
 	[DI1] = {
 		.gpio = GPIO_DI1,
 		.debIrqDevName = "ionopi_di1_deb",
+		.debIrqRequested = false,
 		.debOnMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOffMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOnStateCnt = 0,
@@ -198,6 +200,7 @@ static struct DebounceBean debounceBeans[] = {
 	[DI2] = {
 		.gpio = GPIO_DI2,
 		.debIrqDevName = "ionopi_di2_deb",
+		.debIrqRequested = false,
 		.debOnMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOffMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOnStateCnt = 0,
@@ -207,6 +210,7 @@ static struct DebounceBean debounceBeans[] = {
 	[DI3] = {
 		.gpio = GPIO_DI3,
 		.debIrqDevName = "ionopi_di3_deb",
+		.debIrqRequested = false,
 		.debOnMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOffMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOnStateCnt = 0,
@@ -216,6 +220,7 @@ static struct DebounceBean debounceBeans[] = {
 	[DI4] = {
 		.gpio = GPIO_DI4,
 		.debIrqDevName = "ionopi_di4_deb",
+		.debIrqRequested = false,
 		.debOnMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOffMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOnStateCnt = 0,
@@ -225,6 +230,7 @@ static struct DebounceBean debounceBeans[] = {
 	[DI5] = {
 		.gpio = GPIO_DI5,
 		.debIrqDevName = "ionopi_di5_deb",
+		.debIrqRequested = false,
 		.debOnMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOffMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOnStateCnt = 0,
@@ -234,6 +240,7 @@ static struct DebounceBean debounceBeans[] = {
 	[DI6] = {
 		.gpio = GPIO_DI6,
 		.debIrqDevName = "ionopi_di6_deb",
+		.debIrqRequested = false,
 		.debOnMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOffMinTime_usec = DEBOUNCE_DEFAULT_TIME_USEC,
 		.debOnStateCnt = 0,
@@ -1122,8 +1129,8 @@ static char toUpper(char c) {
 	return c;
 }
 
-static struct DeviceAttrBean* devAttrGetBean(struct device* dev,
-		struct device_attribute* attr) {
+static struct DeviceAttrBean* devAttrGetBean(struct device *dev,
+		struct device_attribute *attr) {
 	int di, ai;
 	di = 0;
 	while (devices[di].name != NULL) {
@@ -1143,8 +1150,8 @@ static struct DeviceAttrBean* devAttrGetBean(struct device* dev,
 	return NULL;
 }
 
-static int getGpio(struct device* dev, struct device_attribute* attr) {
-	struct DeviceAttrBean* dab;
+static int getGpio(struct device *dev, struct device_attribute *attr) {
+	struct DeviceAttrBean *dab;
 	dab = devAttrGetBean(dev, attr);
 	if (dab == NULL || dab->gpioMode == 0) {
 		return -1;
@@ -1152,8 +1159,8 @@ static int getGpio(struct device* dev, struct device_attribute* attr) {
 	return dab->gpio;
 }
 
-static ssize_t devAttrGpio_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrGpio_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	int gpio;
 	gpio = getGpio(dev, attr);
 	if (gpio < 0) {
@@ -1162,8 +1169,8 @@ static ssize_t devAttrGpio_show(struct device* dev,
 	return sprintf(buf, "%d\n", gpio_get_value(gpio));
 }
 
-static ssize_t devAttrGpio_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
+static ssize_t devAttrGpio_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
 	bool val;
 	int gpio = getGpio(dev, attr);
 	if (gpio < 0) {
@@ -1318,8 +1325,8 @@ static ssize_t devAttrGpioDebOffCnt_show(struct device *dev,
 	return sprintf(buf, "%lu\n", res);
 }
 
-static ssize_t devAttrGpioBlink_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
+static ssize_t devAttrGpioBlink_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
 	int i;
 	long on = 0;
 	long off = 0;
@@ -1386,43 +1393,43 @@ static ssize_t devAttrMcp3204_show(char *buf, unsigned int channel, int mult) {
 	return sprintf(buf, "%d\n", ret);
 }
 
-static ssize_t devAttrAi1Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi1Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI1_MCP_CHANNEL, AI1_AI2_FACTOR);
 }
 
-static ssize_t devAttrAi2Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi2Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI2_MCP_CHANNEL, AI1_AI2_FACTOR);
 }
 
-static ssize_t devAttrAi3Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi3Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI3_MCP_CHANNEL, AI3_AI4_FACTOR);
 }
 
-static ssize_t devAttrAi4Mv_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi4Mv_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI4_MCP_CHANNEL, AI3_AI4_FACTOR);
 }
 
-static ssize_t devAttrAi1Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi1Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI1_MCP_CHANNEL, 0);
 }
 
-static ssize_t devAttrAi2Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi2Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI2_MCP_CHANNEL, 0);
 }
 
-static ssize_t devAttrAi3Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi3Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI3_MCP_CHANNEL, 0);
 }
 
-static ssize_t devAttrAi4Raw_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+static ssize_t devAttrAi4Raw_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	return devAttrMcp3204_show(buf, AI4_MCP_CHANNEL, 0);
 }
 
@@ -1479,13 +1486,13 @@ const struct of_device_id ionopi_of_match[] = {
 	{ .compatible = "sferalabs,ionopi", },
 	{ },
 };
-MODULE_DEVICE_TABLE(of, ionopi_of_match);
+MODULE_DEVICE_TABLE( of, ionopi_of_match);
 
 static const struct spi_device_id ionopi_spi_ids[] = {
 	{ "ionopi", 0 },
 	{ },
 };
-MODULE_DEVICE_TABLE(spi, ionopi_spi_ids);
+MODULE_DEVICE_TABLE( spi, ionopi_spi_ids);
 
 static struct spi_driver mcp3204_spi_driver = {
 	.driver = {
@@ -1560,8 +1567,13 @@ static void cleanup(void) {
 					gpio_free(devices[di].devAttrBeans[ai].gpio);
 				}
 				if (devices[di].devAttrBeans[ai].debBean != NULL) {
-					free_irq(devices[di].devAttrBeans[ai].debBean->debIrqNum,
-					NULL);
+					if (devices[di].devAttrBeans[ai].debBean->debIrqRequested) {
+						free_irq(
+								devices[di].devAttrBeans[ai].debBean->debIrqNum,
+								NULL);
+						devices[di].devAttrBeans[ai].debBean->debIrqRequested =
+								false;
+					}
 				}
 				ai++;
 			}
@@ -1646,13 +1658,13 @@ static int __init ionopi_init(void) {
 				gpio_export(devices[di].devAttrBeans[ai].gpio, false);
 			}
 			if (devices[di].devAttrBeans[ai].debBean != NULL) {
-				if (!devices[di].devAttrBeans[ai].debBean->debIrqNum) {
+				if (!devices[di].devAttrBeans[ai].debBean->debIrqRequested) {
 					devices[di].devAttrBeans[ai].debBean->debIrqNum =
 							gpio_to_irq(
 									devices[di].devAttrBeans[ai].debBean->gpio);
 					if (request_irq(
 							devices[di].devAttrBeans[ai].debBean->debIrqNum,
-							(void *) gpio_deb_irq_handler,
+							(void*) gpio_deb_irq_handler,
 							IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING,
 							devices[di].devAttrBeans[ai].debBean->debIrqDevName,
 							NULL)) {
@@ -1662,6 +1674,8 @@ static int __init ionopi_init(void) {
 								devices[di].name);
 						goto fail;
 					}
+					devices[di].devAttrBeans[ai].debBean->debIrqRequested =
+							true;
 					ktime_get_raw_ts64(
 							&devices[di].devAttrBeans[ai].debBean->lastDebIrqTs);
 					devices[di].devAttrBeans[ai].debBean->debValue =
@@ -1693,5 +1707,5 @@ static void __exit ionopi_exit(void) {
 	printk(KERN_INFO "ionopi: - | exit\n");
 }
 
-module_init(ionopi_init);
-module_exit(ionopi_exit);
+module_init( ionopi_init);
+module_exit( ionopi_exit);
