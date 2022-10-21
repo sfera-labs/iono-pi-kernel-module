@@ -1364,6 +1364,10 @@ static ssize_t devAttrMcp3204_show(char *buf, unsigned int channel, int mult) {
 
 	mutex_unlock(&mcp3204_spi_data->lock);
 
+	if (ret < 0) {
+		return ret;
+	}
+
 	return sprintf(buf, "%d\n", ret);
 }
 
