@@ -1320,7 +1320,6 @@ static ssize_t devAttrGpioBlink_store(struct device *dev,
 	if (rep < 1) {
 		rep = 1;
 	}
-	printk(KERN_INFO "ionopi: - | gpio blink %ld %ld %ld\n", on, off, rep);
 	if (on > 0) {
 		for (i = 0; i < rep; i++) {
 			gpio_set_value(gpio, 1);
