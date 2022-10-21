@@ -113,9 +113,9 @@ The debounce state of each digital input at system start is UNDEFINED (-1), beca
 
 |File|R/W|Value|Description|
 |----|:---:|:-:|-----------|
-|di*N*_deb|R|1|Digital input *N* debounced value high|
-|di*N*_deb|R|0|Digital input *N* debounced value low|
-|di*N*_deb|R|-1|Digital input *N* debounced value undefined|
+|di*N*_deb<sup>([pollable](https://github.com/sfera-labs/knowledge-base/blob/main/raspberrypi/poll-sysfs-files.md))</sup>|R|1|Digital input *N* debounced value high|
+|di*N*_deb<sup>([pollable](https://github.com/sfera-labs/knowledge-base/blob/main/raspberrypi/poll-sysfs-files.md))</sup>|R|0|Digital input *N* debounced value low|
+|di*N*_deb<sup>([pollable](https://github.com/sfera-labs/knowledge-base/blob/main/raspberrypi/poll-sysfs-files.md))</sup>|R|-1|Digital input *N* debounced value undefined|
 |di*N*_deb_on_ms|RW|val|Minimum stable time in ms to trigger change of the debounced value of digital input *N* to high state. Default value=50|
 |di*N*_deb_off_ms|RW|val|Minimum stable time in ms to trigger change of the debounced value of digital input *N* to low state. Default value=50|
 |di*N*_deb_on_cnt|R|val| Number of times with the debounced value of the digital input *N* in high state. Rolls back to 0 after 4294967295|
