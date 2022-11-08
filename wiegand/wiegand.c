@@ -1,4 +1,6 @@
 #include "wiegand.h"
+#include "../commons/commons.h"
+#include <linux/gpio.h>
 #include <linux/interrupt.h>
 
 #define WIEGAND_MAX_BITS 64
@@ -7,7 +9,7 @@
 struct WiegandBean *ws[WIEGAND_INTERFACES];
 int wCount = 0;
 
-void wiegandAdd(struct WiegandBean* w) {
+void wiegandAdd(struct WiegandBean *w) {
 	ws[wCount++] = w;
 	w->d0.irqRequested = false;
 	w->d1.irqRequested = false;
@@ -20,7 +22,7 @@ void wiegandAdd(struct WiegandBean* w) {
 	w->id = '0' + wCount;
 }
 
-static void wiegandReset(struct WiegandBean* w) {
+static void wiegandReset(struct WiegandBean *w) {
 	w->enabled = true;
 	w->data = 0;
 	w->bitCount = 0;
@@ -29,7 +31,7 @@ static void wiegandReset(struct WiegandBean* w) {
 	w->d1.wasLow = false;
 }
 
-void wiegandDisable(struct WiegandBean* w) {
+void wiegandDisable(struct WiegandBean *w) {
 	if (w->enabled) {
 		gpio_free(w->d0.gpio->gpio);
 		gpio_free(w->d1.gpio->gpio);
@@ -44,8 +46,8 @@ void wiegandDisable(struct WiegandBean* w) {
 			w->d1.irqRequested = false;
 		}
 
-		w->d0.gpio->busy = false;
-		w->d1.gpio->busy = false;
+		w->d0.gpio->owner = NULL;
+		w->d1.gpio->owner = NULL;
 		w->enabled = false;
 	}
 }
@@ -55,8 +57,8 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 	bool isLow;
 	struct timespec64 now;
 	unsigned long long diff;
-	struct WiegandBean* w;
-	struct WiegandLine* l = NULL;
+	struct WiegandBean *w;
+	struct WiegandLine *l = NULL;
 	int i;
 
 	for (i = 0; i < wCount; i++) {
@@ -93,7 +95,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 
 	if (isLow) {
 		if (w->bitCount != 0) {
-			diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
+			diff = diff_usec((struct timespec64*) &(w->lastBitTs), &now);
 
 			if (diff < w->pulseIntervalMin_usec) {
 				// pulse too early
@@ -131,7 +133,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 			return (irq_handler_t) IRQ_HANDLED;
 		}
 
-		diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
+		diff = diff_usec((struct timespec64*) &(w->lastBitTs), &now);
 		if (diff < w->pulseWidthMin_usec) {
 			// pulse too short
 			w->noise = 14;
@@ -157,7 +159,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 	return (irq_handler_t) IRQ_HANDLED;
 }
 
-static struct WiegandBean* getWiegandBean(struct device_attribute* attr) {
+static struct WiegandBean* getWiegandBean(struct device_attribute *attr) {
 	int i;
 	for (i = 0; i < wCount; i++) {
 		if (attr->attr.name[1] == ws[i]->id) {
@@ -167,16 +169,16 @@ static struct WiegandBean* getWiegandBean(struct device_attribute* attr) {
 	return NULL;
 }
 
-ssize_t devAttrWiegandEnabled_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandEnabled_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 	return sprintf(buf, w->enabled ? "1\n" : "0\n");
 }
 
-ssize_t devAttrWiegandEnabled_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandEnabled_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
+	struct WiegandBean *w;
 	bool enable;
 	int result = 0;
 	char reqName[] = "wiegand_wN_dN";
@@ -192,11 +194,11 @@ ssize_t devAttrWiegandEnabled_store(struct device* dev,
 	}
 
 	if (enable && !w->enabled) {
-		if (w->d0.gpio->busy || w->d1.gpio->busy) {
+		if (w->d0.gpio->owner != NULL || w->d1.gpio->owner != NULL) {
 			return -EBUSY;
 		}
-		w->d0.gpio->busy = true;
-		w->d1.gpio->busy = true;
+		w->d0.gpio->owner = w;
+		w->d1.gpio->owner = w;
 		reqName[9] = w->id;
 
 		reqName[12] = '0';
@@ -261,11 +263,11 @@ ssize_t devAttrWiegandEnabled_store(struct device* dev,
 	return count;
 }
 
-ssize_t devAttrWiegandData_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
+ssize_t devAttrWiegandData_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
 	struct timespec64 now;
 	unsigned long long diff;
-	struct WiegandBean* w;
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	if (!w->enabled) {
@@ -273,7 +275,7 @@ ssize_t devAttrWiegandData_show(struct device* dev,
 	}
 
 	ktime_get_raw_ts64(&now);
-	diff = diff_usec((struct timespec64 *) &(w->lastBitTs), &now);
+	diff = diff_usec((struct timespec64*) &(w->lastBitTs), &now);
 	if (diff <= w->pulseIntervalMax_usec) {
 		return -EBUSY;
 	}
@@ -282,9 +284,9 @@ ssize_t devAttrWiegandData_show(struct device* dev,
 			w->data);
 }
 
-ssize_t devAttrWiegandNoise_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandNoise_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
+	struct WiegandBean *w;
 	int noise;
 	w = getWiegandBean(attr);
 	noise = w->noise;
@@ -294,19 +296,19 @@ ssize_t devAttrWiegandNoise_show(struct device* dev,
 	return sprintf(buf, "%d\n", noise);
 }
 
-ssize_t devAttrWiegandPulseIntervalMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandPulseIntervalMin_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	return sprintf(buf, "%lu\n", w->pulseIntervalMin_usec);
 }
 
-ssize_t devAttrWiegandPulseIntervalMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
+ssize_t devAttrWiegandPulseIntervalMin_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
 	int ret;
 	unsigned long val;
-	struct WiegandBean* w;
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	ret = kstrtol(buf, 10, &val);
@@ -319,19 +321,19 @@ ssize_t devAttrWiegandPulseIntervalMin_store(struct device* dev,
 	return count;
 }
 
-ssize_t devAttrWiegandPulseIntervalMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandPulseIntervalMax_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	return sprintf(buf, "%lu\n", w->pulseIntervalMax_usec);
 }
 
-ssize_t devAttrWiegandPulseIntervalMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
+ssize_t devAttrWiegandPulseIntervalMax_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
 	int ret;
 	unsigned long val;
-	struct WiegandBean* w;
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	ret = kstrtol(buf, 10, &val);
@@ -344,19 +346,19 @@ ssize_t devAttrWiegandPulseIntervalMax_store(struct device* dev,
 	return count;
 }
 
-ssize_t devAttrWiegandPulseWidthMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandPulseWidthMin_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	return sprintf(buf, "%lu\n", w->pulseWidthMin_usec);
 }
 
-ssize_t devAttrWiegandPulseWidthMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
+ssize_t devAttrWiegandPulseWidthMin_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
 	int ret;
 	unsigned long val;
-	struct WiegandBean* w;
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	ret = kstrtol(buf, 10, &val);
@@ -369,19 +371,19 @@ ssize_t devAttrWiegandPulseWidthMin_store(struct device* dev,
 	return count;
 }
 
-ssize_t devAttrWiegandPulseWidthMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf) {
-	struct WiegandBean* w;
+ssize_t devAttrWiegandPulseWidthMax_show(struct device *dev,
+		struct device_attribute *attr, char *buf) {
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	return sprintf(buf, "%lu\n", w->pulseWidthMax_usec);
 }
 
-ssize_t devAttrWiegandPulseWidthMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count) {
+ssize_t devAttrWiegandPulseWidthMax_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count) {
 	int ret;
 	unsigned long val;
-	struct WiegandBean* w;
+	struct WiegandBean *w;
 	w = getWiegandBean(attr);
 
 	ret = kstrtol(buf, 10, &val);

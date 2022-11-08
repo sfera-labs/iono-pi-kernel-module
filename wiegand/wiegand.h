@@ -1,10 +1,11 @@
 #ifndef _SL_WIEGAND_H
 #define _SL_WIEGAND_H
 
-#include "../commons/commons.h"
+#include "../gpio/gpio.h"
+#include <linux/device.h>
 
 struct WiegandLine {
-	struct SharedGpio *gpio;
+	struct GpioBean *gpio;
 	unsigned int irq;
 	bool irqRequested;
 	bool wasLow;

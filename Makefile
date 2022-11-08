@@ -2,6 +2,7 @@ obj-m += ionopi.o
 
 ionopi-objs := module.o
 ionopi-objs += commons/commons.o
+ionopi-objs += gpio/gpio.o
 ionopi-objs += wiegand/wiegand.o
 ionopi-objs += atecc/atecc.o
 

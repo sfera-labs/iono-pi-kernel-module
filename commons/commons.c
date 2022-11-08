@@ -10,3 +10,9 @@ unsigned long long diff_usec(struct timespec64 *t1, struct timespec64 *t2) {
 	return to_usec(&diff);
 }
 
+char toUpper(char c) {
+	if (c >= 97 && c <= 122) {
+		return c - 32;
+	}
+	return c;
+}

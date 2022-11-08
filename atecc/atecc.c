@@ -1,6 +1,7 @@
 #include "atecc.h"
 #include <linux/module.h>
 #include <linux/delay.h>
+#include <linux/i2c.h>
 
 struct AteccBean {
 	uint8_t serialNumber[9];
