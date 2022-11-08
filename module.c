@@ -1117,6 +1117,15 @@ struct GpioBean* gpioGetBean(struct device *dev, struct device_attribute *attr) 
 	return dab->gpio;
 }
 
+struct WiegandBean* wiegandGetBean(struct device *dev,
+		struct device_attribute *attr) {
+	if (attr->attr.name[1] == '1') {
+		return &w1;
+	} else {
+		return &w2;
+	}
+}
+
 static ssize_t devAttrMcp3204_show(char *buf, unsigned int channel, int mult) {
 	int i, ret;
 
@@ -1345,8 +1354,8 @@ static int __init ionopi_init(void) {
 		}
 	}
 
-	wiegandAdd(&w1);
-	wiegandAdd(&w2);
+	wiegandInit(&w1);
+	wiegandInit(&w2);
 
 	pDeviceClass = class_create(THIS_MODULE, "ionopi");
 	if (IS_ERR(pDeviceClass)) {

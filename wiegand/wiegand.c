@@ -4,13 +4,19 @@
 #include <linux/interrupt.h>
 
 #define WIEGAND_MAX_BITS 64
-#define WIEGAND_INTERFACES 2
 
-struct WiegandBean *ws[WIEGAND_INTERFACES];
 int wCount = 0;
 
-void wiegandAdd(struct WiegandBean *w) {
-	ws[wCount++] = w;
+static enum hrtimer_restart wiegandTimerHandler(struct hrtimer *tmr) {
+	struct WiegandBean *w;
+	w = container_of(tmr, struct WiegandBean, timer);
+	if (w->notifKn != NULL) {
+		sysfs_notify_dirent(w->notifKn);
+	}
+	return HRTIMER_NORESTART;
+}
+
+void wiegandInit(struct WiegandBean *w) {
 	w->d0.irqRequested = false;
 	w->d1.irqRequested = false;
 	w->enabled = false;
@@ -19,7 +25,9 @@ void wiegandAdd(struct WiegandBean *w) {
 	w->pulseIntervalMin_usec = 1200;
 	w->pulseIntervalMax_usec = 2700;
 	w->noise = 0;
-	w->id = '0' + wCount;
+	w->id = '0' + (++wCount);
+	hrtimer_init(&w->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	w->timer.function = &wiegandTimerHandler;
 }
 
 static void wiegandReset(struct WiegandBean *w) {
@@ -33,16 +41,18 @@ static void wiegandReset(struct WiegandBean *w) {
 
 void wiegandDisable(struct WiegandBean *w) {
 	if (w->enabled) {
+		hrtimer_cancel(&w->timer);
+
 		gpio_free(w->d0.gpio->gpio);
 		gpio_free(w->d1.gpio->gpio);
 
 		if (w->d0.irqRequested) {
-			free_irq(w->d0.irq, NULL);
+			free_irq(w->d0.irq, w);
 			w->d0.irqRequested = false;
 		}
 
 		if (w->d1.irqRequested) {
-			free_irq(w->d1.irq, NULL);
+			free_irq(w->d1.irq, w);
 			w->d1.irqRequested = false;
 		}
 
@@ -52,31 +62,26 @@ void wiegandDisable(struct WiegandBean *w) {
 	}
 }
 
-static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
-		struct pt_regs *regs) {
+static irqreturn_t wiegandDataIrqHandler(int irq, void *dev) {
 	bool isLow;
 	struct timespec64 now;
 	unsigned long long diff;
 	struct WiegandBean *w;
-	struct WiegandLine *l = NULL;
-	int i;
+	struct WiegandLine *l;
 
-	for (i = 0; i < wCount; i++) {
-		if (ws[i]->enabled) {
-			if (irq == ws[i]->d0.irq) {
-				w = ws[i];
-				l = &ws[i]->d0;
-				break;
-			} else if (irq == ws[i]->d1.irq) {
-				w = ws[i];
-				l = &ws[i]->d1;
-				break;
-			}
+	w = (struct WiegandBean*) dev;
+	l = NULL;
+
+	if (w->enabled) {
+		if (irq == w->d0.irq) {
+			l = &w->d0;
+		} else if (irq == w->d1.irq) {
+			l = &w->d1;
 		}
 	}
 
 	if (l == NULL) {
-		return (irq_handler_t) IRQ_HANDLED;
+		return IRQ_HANDLED;
 	}
 
 	isLow = gpio_get_value(l->gpio->gpio) == 0;
@@ -88,7 +93,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 		if (w->noise == 0) {
 			w->noise = 10;
 		}
-		return (irq_handler_t) IRQ_HANDLED;
+		return IRQ_HANDLED;
 	}
 
 	l->wasLow = isLow;
@@ -130,7 +135,7 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 		w->activeLine = NULL;
 
 		if (w->bitCount >= WIEGAND_MAX_BITS) {
-			return (irq_handler_t) IRQ_HANDLED;
+			return IRQ_HANDLED;
 		}
 
 		diff = diff_usec((struct timespec64*) &(w->lastBitTs), &now);
@@ -150,29 +155,27 @@ static irq_handler_t wiegandDataIrqHandler(unsigned int irq, void *dev_id,
 			w->data |= 1;
 		}
 		w->bitCount++;
+
+		hrtimer_cancel(&w->timer);
+		hrtimer_start(&w->timer,
+				ktime_set(0, (w->pulseIntervalMax_usec - diff) * 1000),
+				HRTIMER_MODE_REL);
 	}
 
-	return (irq_handler_t) IRQ_HANDLED;
+	return IRQ_HANDLED;
 
 	noise:
 	wiegandReset(w);
-	return (irq_handler_t) IRQ_HANDLED;
-}
-
-static struct WiegandBean* getWiegandBean(struct device_attribute *attr) {
-	int i;
-	for (i = 0; i < wCount; i++) {
-		if (attr->attr.name[1] == ws[i]->id) {
-			return ws[i];
-		}
-	}
-	return NULL;
+	return IRQ_HANDLED;
 }
 
 ssize_t devAttrWiegandEnabled_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 	return sprintf(buf, w->enabled ? "1\n" : "0\n");
 }
 
@@ -183,7 +186,10 @@ ssize_t devAttrWiegandEnabled_store(struct device *dev,
 	int result = 0;
 	char reqName[] = "wiegand_wN_dN";
 
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	if (buf[0] == '0') {
 		enable = false;
@@ -212,7 +218,7 @@ ssize_t devAttrWiegandEnabled_store(struct device *dev,
 		}
 
 		if (result) {
-			printk(KERN_ALERT "error setting up wiegand GPIOs\n");
+			pr_alert("error setting up wiegand GPIOs\n");
 			enable = false;
 		} else {
 			gpio_set_debounce(w->d0.gpio->gpio, 0);
@@ -223,21 +229,21 @@ ssize_t devAttrWiegandEnabled_store(struct device *dev,
 
 			reqName[12] = '0';
 			result = request_irq(w->d0.irq,
-					(irq_handler_t) wiegandDataIrqHandler,
+					wiegandDataIrqHandler,
 					IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-					reqName, NULL);
+					reqName, w);
 
 			if (result) {
-				printk(KERN_ALERT "error registering wiegand D0 irq handler\n");
+				pr_alert("error registering wiegand D0 irq handler\n");
 				enable = false;
 			} else {
 				w->d0.irqRequested = true;
 
 				reqName[12] = '1';
 				result = request_irq(w->d1.irq,
-						(irq_handler_t) wiegandDataIrqHandler,
+						wiegandDataIrqHandler,
 						IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-						reqName, NULL);
+						reqName, w);
 
 				if (result) {
 					printk(
@@ -268,10 +274,17 @@ ssize_t devAttrWiegandData_show(struct device *dev,
 	struct timespec64 now;
 	unsigned long long diff;
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	if (!w->enabled) {
 		return -ENODEV;
+	}
+
+	if (w->notifKn == NULL) {
+		w->notifKn = sysfs_get_dirent(dev->kobj.sd, attr->attr.name);
 	}
 
 	ktime_get_raw_ts64(&now);
@@ -288,7 +301,10 @@ ssize_t devAttrWiegandNoise_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct WiegandBean *w;
 	int noise;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 	noise = w->noise;
 
 	w->noise = 0;
@@ -299,7 +315,10 @@ ssize_t devAttrWiegandNoise_show(struct device *dev,
 ssize_t devAttrWiegandPulseIntervalMin_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	return sprintf(buf, "%lu\n", w->pulseIntervalMin_usec);
 }
@@ -309,7 +328,10 @@ ssize_t devAttrWiegandPulseIntervalMin_store(struct device *dev,
 	int ret;
 	unsigned long val;
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	ret = kstrtol(buf, 10, &val);
 	if (ret < 0) {
@@ -324,7 +346,10 @@ ssize_t devAttrWiegandPulseIntervalMin_store(struct device *dev,
 ssize_t devAttrWiegandPulseIntervalMax_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	return sprintf(buf, "%lu\n", w->pulseIntervalMax_usec);
 }
@@ -334,7 +359,10 @@ ssize_t devAttrWiegandPulseIntervalMax_store(struct device *dev,
 	int ret;
 	unsigned long val;
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	ret = kstrtol(buf, 10, &val);
 	if (ret < 0) {
@@ -349,7 +377,10 @@ ssize_t devAttrWiegandPulseIntervalMax_store(struct device *dev,
 ssize_t devAttrWiegandPulseWidthMin_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	return sprintf(buf, "%lu\n", w->pulseWidthMin_usec);
 }
@@ -359,7 +390,10 @@ ssize_t devAttrWiegandPulseWidthMin_store(struct device *dev,
 	int ret;
 	unsigned long val;
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	ret = kstrtol(buf, 10, &val);
 	if (ret < 0) {
@@ -374,7 +408,10 @@ ssize_t devAttrWiegandPulseWidthMin_store(struct device *dev,
 ssize_t devAttrWiegandPulseWidthMax_show(struct device *dev,
 		struct device_attribute *attr, char *buf) {
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	return sprintf(buf, "%lu\n", w->pulseWidthMax_usec);
 }
@@ -384,7 +421,10 @@ ssize_t devAttrWiegandPulseWidthMax_store(struct device *dev,
 	int ret;
 	unsigned long val;
 	struct WiegandBean *w;
-	w = getWiegandBean(attr);
+	w = wiegandGetBean(dev, attr);
+	if (w == NULL) {
+		return -EFAULT;
+	}
 
 	ret = kstrtol(buf, 10, &val);
 	if (ret < 0) {

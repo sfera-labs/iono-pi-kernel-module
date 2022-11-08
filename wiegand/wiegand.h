@@ -25,46 +25,51 @@ struct WiegandBean {
 	int bitCount;
 	int noise;
 	struct timespec64 lastBitTs;
+	struct hrtimer timer;
+	struct kernfs_node *notifKn;
 };
 
-void wiegandAdd(struct WiegandBean* w);
+void wiegandInit(struct WiegandBean *w);
 
-void wiegandDisable(struct WiegandBean* w);
+void wiegandDisable(struct WiegandBean *w);
 
-ssize_t devAttrWiegandEnabled_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandEnabled_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandEnabled_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+ssize_t devAttrWiegandEnabled_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-ssize_t devAttrWiegandData_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandData_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandNoise_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandNoise_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandPulseIntervalMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandPulseIntervalMin_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandPulseIntervalMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+ssize_t devAttrWiegandPulseIntervalMin_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-ssize_t devAttrWiegandPulseIntervalMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandPulseIntervalMax_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandPulseIntervalMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+ssize_t devAttrWiegandPulseIntervalMax_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-ssize_t devAttrWiegandPulseWidthMin_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandPulseWidthMin_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandPulseWidthMin_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+ssize_t devAttrWiegandPulseWidthMin_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
 
-ssize_t devAttrWiegandPulseWidthMax_show(struct device* dev,
-		struct device_attribute* attr, char *buf);
+ssize_t devAttrWiegandPulseWidthMax_show(struct device *dev,
+		struct device_attribute *attr, char *buf);
 
-ssize_t devAttrWiegandPulseWidthMax_store(struct device* dev,
-		struct device_attribute* attr, const char *buf, size_t count);
+ssize_t devAttrWiegandPulseWidthMax_store(struct device *dev,
+		struct device_attribute *attr, const char *buf, size_t count);
+
+struct WiegandBean* wiegandGetBean(struct device *dev,
+		struct device_attribute *attr);
 
 #endif
