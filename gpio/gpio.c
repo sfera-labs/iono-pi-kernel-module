@@ -52,18 +52,14 @@ static enum hrtimer_restart debounceTimerHandler(struct hrtimer *tmr) {
 }
 
 int gpioInit(struct GpioBean *g) {
-	int res;
-
-	gpio_request(g->gpio, g->name);
 	if (g->mode == GPIO_MODE_OUT) {
-		res = gpio_direction_output(g->gpio, 0);
-	} else {
-		res = gpio_direction_input(g->gpio);
+		gpio_request(g->gpio, g->name);
+		return gpio_direction_output(g->gpio, 0);
+	} else if (g->mode == GPIO_MODE_IN) {
+		gpio_request(g->gpio, g->name);
+		return gpio_direction_input(g->gpio);
 	}
-	if (res) {
-		return res;
-	}
-	return res;
+	return -1;
 }
 
 int gpioInitDebounce(struct DebouncedGpioBean *d) {
@@ -109,7 +105,7 @@ void gpioFreeDebounce(struct DebouncedGpioBean *d) {
 	}
 }
 
-static int gpioGetVal(struct GpioBean *g) {
+int gpioGetVal(struct GpioBean *g) {
 	int v;
 	v = gpio_get_value(g->gpio);
 	if (g->invert) {
@@ -118,11 +114,62 @@ static int gpioGetVal(struct GpioBean *g) {
 	return v;
 }
 
-static void gpioSetVal(struct GpioBean *g, int val) {
+void gpioSetVal(struct GpioBean *g, int val) {
 	if (g->invert) {
 		val = val == 0 ? 1 : 0;
 	}
 	gpio_set_value(g->gpio, val);
+}
+
+ssize_t devAttrGpioMode_show(struct device *dev, struct device_attribute *attr,
+		char *buf) {
+	struct GpioBean *g;
+	g = gpioGetBean(dev, attr);
+	if (g == NULL) {
+		return -EFAULT;
+	}
+	if (g->mode == GPIO_MODE_IN) {
+		return sprintf(buf, "in\n");
+	}
+	if (g->mode == GPIO_MODE_OUT) {
+		return sprintf(buf, "out\n");
+	}
+	return sprintf(buf, "x\n");
+}
+
+ssize_t devAttrGpioMode_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count) {
+	struct GpioBean *g;
+	g = gpioGetBean(dev, attr);
+	if (g == NULL) {
+		return -EFAULT;
+	}
+
+	if (g->owner != NULL && g->owner != attr) {
+		return -EBUSY;
+	}
+
+	if (toUpper(buf[0]) == 'I') {
+		g->mode = GPIO_MODE_IN;
+	} else if (toUpper(buf[0]) == 'O') {
+		g->mode = GPIO_MODE_OUT;
+	} else {
+		g->mode = 0;
+	}
+
+	gpio_free(g->gpio);
+	g->owner = NULL;
+	if (g->mode != 0) {
+		if (gpioInit(g)) {
+			g->mode = 0;
+			gpio_free(g->gpio);
+			return -EFAULT;
+		} else {
+			g->owner = attr;
+		}
+	}
+
+	return count;
 }
 
 ssize_t devAttrGpio_show(struct device *dev,
@@ -131,6 +178,9 @@ ssize_t devAttrGpio_show(struct device *dev,
 	g = gpioGetBean(dev, attr);
 	if (g == NULL) {
 		return -EFAULT;
+	}
+	if (g->mode != GPIO_MODE_IN && g->mode != GPIO_MODE_OUT) {
+		return -EPERM;
 	}
 	return sprintf(buf, "%d\n", gpioGetVal(g));
 }
@@ -142,6 +192,9 @@ ssize_t devAttrGpio_store(struct device *dev,
 	g = gpioGetBean(dev, attr);
 	if (g == NULL) {
 		return -EFAULT;
+	}
+	if (g->mode != GPIO_MODE_OUT) {
+		return -EPERM;
 	}
 	if (kstrtobool(buf, &val) < 0) {
 		if (toUpper(buf[0]) == 'E') { // Enable
@@ -169,6 +222,9 @@ ssize_t devAttrGpioBlink_store(struct device *dev,
 	g = gpioGetBean(dev, attr);
 	if (g == NULL) {
 		return -EFAULT;
+	}
+	if (g->mode != GPIO_MODE_OUT) {
+		return -EPERM;
 	}
 	on = simple_strtol(buf, &end, 10);
 	if (++end < buf + count) {

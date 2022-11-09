@@ -38,6 +38,16 @@ void gpioFree(struct GpioBean *g);
 
 void gpioFreeDebounce(struct DebouncedGpioBean *d);
 
+int gpioGetVal(struct GpioBean *g);
+
+void gpioSetVal(struct GpioBean *g, int val);
+
+ssize_t devAttrGpioMode_show(struct device *dev, struct device_attribute *attr,
+		char *buf);
+
+ssize_t devAttrGpioMode_store(struct device *dev, struct device_attribute *attr,
+		const char *buf, size_t count);
+
 ssize_t devAttrGpio_show(struct device *dev, struct device_attribute *attr,
 		char *buf);
 
