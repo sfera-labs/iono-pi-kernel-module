@@ -77,6 +77,9 @@ int gpioInitDebounce(struct DebouncedGpioBean *d) {
 	d->onCnt = 0;
 	d->offCnt = 0;
 
+	hrtimer_init(&d->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
+	d->timer.function = &debounceTimerHandler;
+
 	d->irq = gpio_to_irq(d->gpio.gpio);
 	res = request_irq(d->irq, debounceIrqHandler,
 			(IRQF_TRIGGER_RISING | IRQF_TRIGGER_FALLING), d->gpio.name, d);
@@ -85,8 +88,6 @@ int gpioInitDebounce(struct DebouncedGpioBean *d) {
 	}
 	d->irqRequested = true;
 
-	hrtimer_init(&d->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
-	d->timer.function = &debounceTimerHandler;
 	debounceTimerRestart(d);
 
 	return res;
