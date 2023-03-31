@@ -23,6 +23,7 @@
 #include <linux/delay.h>
 #include <linux/regulator/consumer.h>
 #include <linux/spi/spi.h>
+#include <linux/version.h>
 
 #define GPIO_TTL1			4
 #define GPIO_TTL2			26
@@ -54,7 +55,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.17");
+MODULE_VERSION("1.18");
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
@@ -1241,7 +1242,11 @@ static int mcp3204_spi_probe(struct spi_device *spi) {
 	return 0;
 }
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 static int mcp3204_spi_remove(struct spi_device *spi) {
+#else
+static void mcp3204_spi_remove(struct spi_device *spi) {
+#endif
 	struct mcp3204_data *data = spi_get_drvdata(spi);
 
 	regulator_disable(data->reg);
@@ -1249,7 +1254,9 @@ static int mcp3204_spi_remove(struct spi_device *spi) {
 
 	pr_info("ionopi: - | mcp3204 removed\n");
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 	return 0;
+#endif
 }
 
 const struct of_device_id ionopi_of_match[] = {
