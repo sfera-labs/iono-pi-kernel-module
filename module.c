@@ -54,7 +54,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.16");
+MODULE_VERSION("1.17");
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
