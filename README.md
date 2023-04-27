@@ -1,6 +1,6 @@
 # Iono Pi kernel module
 
-Kernel module for using [Iono Pi](https://www.sferalabs.cc/iono-pi/), the Raspberry Pi based industrial PLC, via sysfs files.
+Kernel module for using [Iono Pi](https://www.sferalabs.cc/product/iono-pi/), the Raspberry Pi industrial PLC, via sysfs files.
 
 For example, from the shell:
 
@@ -33,6 +33,13 @@ Make sure your system is updated:
 
     sudo apt update
     sudo apt upgrade
+
+If you are using Iono Pi with Raspberry Pi **4** and a **32-bit** OS, add to `/boot/config.txt` the following line: [[why?](https://github.com/raspberrypi/firmware/issues/1795)]
+
+    arm_64bit=0
+    
+Reboot:
+
     sudo reboot
     
 After reboot, install git and the Raspberry Pi kernel headers:
