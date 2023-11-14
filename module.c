@@ -55,7 +55,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.18");
+MODULE_VERSION("1.19");
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
@@ -1364,7 +1364,12 @@ static int __init ionopi_init(void) {
 	wiegandInit(&w1);
 	wiegandInit(&w2);
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,5,0)
+	pDeviceClass = class_create("ionopi");
+#else
 	pDeviceClass = class_create(THIS_MODULE, "ionopi");
+#endif
+
 	if (IS_ERR(pDeviceClass)) {
 		pr_alert("ionopi: * | failed to create device class\n");
 		goto fail;
