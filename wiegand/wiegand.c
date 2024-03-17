@@ -1,6 +1,5 @@
 #include "wiegand.h"
 #include "../commons/commons.h"
-#include <linux/gpio.h>
 #include <linux/interrupt.h>
 
 #define WIEGAND_MAX_BITS 64
@@ -43,8 +42,8 @@ void wiegandDisable(struct WiegandBean *w) {
 	if (w->enabled) {
 		hrtimer_cancel(&w->timer);
 
-		gpio_free(w->d0.gpio->gpio);
-		gpio_free(w->d1.gpio->gpio);
+		gpioFree(w->d0.gpio);
+		gpioFree(w->d1.gpio);
 
 		if (w->d0.irqRequested) {
 			free_irq(w->d0.irq, w);
@@ -84,7 +83,7 @@ static irqreturn_t wiegandDataIrqHandler(int irq, void *dev) {
 		return IRQ_HANDLED;
 	}
 
-	isLow = gpio_get_value(l->gpio->gpio) == 0;
+	isLow = gpioGetVal(l->gpio) == 0;
 
 	ktime_get_raw_ts64(&now);
 
@@ -184,7 +183,6 @@ ssize_t devAttrWiegandEnabled_store(struct device *dev,
 	struct WiegandBean *w;
 	bool enable;
 	int result = 0;
-	char reqName[] = "wiegand_wN_dN";
 
 	w = wiegandGetBean(dev, attr);
 	if (w == NULL) {
@@ -205,49 +203,43 @@ ssize_t devAttrWiegandEnabled_store(struct device *dev,
 		}
 		w->d0.gpio->owner = w;
 		w->d1.gpio->owner = w;
-		reqName[9] = w->id;
 
-		reqName[12] = '0';
-		gpio_request(w->d0.gpio->gpio, reqName);
-		reqName[12] = '1';
-		gpio_request(w->d1.gpio->gpio, reqName);
+		w->d0.gpio->flags = GPIOD_IN;
+		w->d1.gpio->flags = GPIOD_IN;
 
-		result = gpio_direction_input(w->d0.gpio->gpio);
+		result = gpioInit(w->d0.gpio);
 		if (!result) {
-			result = gpio_direction_input(w->d1.gpio->gpio);
+			result = gpioInit(w->d1.gpio);
 		}
 
 		if (result) {
-			pr_alert("error setting up wiegand GPIOs\n");
+			pr_err("error setting up wiegand GPIOs\n");
 			enable = false;
 		} else {
-			gpio_set_debounce(w->d0.gpio->gpio, 0);
-			gpio_set_debounce(w->d1.gpio->gpio, 0);
+			gpiod_set_debounce(w->d0.gpio->desc, 0);
+			gpiod_set_debounce(w->d1.gpio->desc, 0);
 
-			w->d0.irq = gpio_to_irq(w->d0.gpio->gpio);
-			w->d1.irq = gpio_to_irq(w->d1.gpio->gpio);
+			w->d0.irq = gpiod_to_irq(w->d0.gpio->desc);
+			w->d1.irq = gpiod_to_irq(w->d1.gpio->desc);
 
-			reqName[12] = '0';
 			result = request_irq(w->d0.irq,
 					wiegandDataIrqHandler,
 					IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-					reqName, w);
+					w->d0.gpio->name, w);
 
 			if (result) {
-				pr_alert("error registering wiegand D0 irq handler\n");
+				pr_err("error registering wiegand D0 irq handler\n");
 				enable = false;
 			} else {
 				w->d0.irqRequested = true;
 
-				reqName[12] = '1';
 				result = request_irq(w->d1.irq,
 						wiegandDataIrqHandler,
 						IRQF_TRIGGER_FALLING | IRQF_TRIGGER_RISING,
-						reqName, w);
+						w->d1.gpio->name, w);
 
 				if (result) {
-					printk(
-					KERN_ALERT "error registering wiegand D1 irq handler\n");
+					pr_err("error registering wiegand D1 irq handler\n");
 					enable = false;
 				} else {
 					w->d1.irqRequested = true;

@@ -25,25 +25,6 @@
 #include <linux/spi/spi.h>
 #include <linux/version.h>
 
-#define GPIO_TTL1			4
-#define GPIO_TTL2			26
-#define GPIO_TTL3			20
-#define GPIO_TTL4			21
-#define GPIO_DI1			16
-#define GPIO_DI2			19
-#define GPIO_DI3			13
-#define GPIO_DI4			12
-#define GPIO_DI5			6
-#define GPIO_DI6			5
-#define GPIO_OC1			18
-#define GPIO_OC2			25
-#define GPIO_OC3			24
-#define GPIO_O1				17
-#define GPIO_O2				27
-#define GPIO_O3				22
-#define GPIO_O4				23
-#define GPIO_LED			7
-
 #define AI1_AI2_FACTOR 		7319
 #define AI3_AI4_FACTOR 		725
 
@@ -55,7 +36,9 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.19");
+MODULE_VERSION("1.20");
+
+#define LOG_TAG "ionopi: "
 
 struct DeviceAttrBean {
 	struct device_attribute devAttr;
@@ -129,51 +112,44 @@ enum ttlEnum {
 
 static struct GpioBean gpioLed = {
 	.name = "ionopi_led",
-	.gpio = GPIO_LED,
-	.mode = GPIO_MODE_OUT,
+	.flags = GPIOD_OUT_LOW,
 };
 
 static struct DebouncedGpioBean gpioDI[] = {
 	[DI1] = {
 		.gpio = {
 			.name = "ionopi_di1",
-			.gpio = GPIO_DI1,
-			.mode = GPIO_MODE_IN,
+			.flags = GPIOD_IN,
 		},
 	},
 	[DI2] = {
 		.gpio = {
 			.name = "ionopi_di2",
-			.gpio = GPIO_DI2,
-			.mode = GPIO_MODE_IN,
+			.flags = GPIOD_IN,
 		},
 	},
 	[DI3] = {
 		.gpio = {
 			.name = "ionopi_di3",
-			.gpio = GPIO_DI3,
-			.mode = GPIO_MODE_IN,
+			.flags = GPIOD_IN,
 		},
 	},
 	[DI4] = {
 		.gpio = {
 			.name = "ionopi_di4",
-			.gpio = GPIO_DI4,
-			.mode = GPIO_MODE_IN,
+			.flags = GPIOD_IN,
 		},
 	},
 	[DI5] = {
 		.gpio = {
 			.name = "ionopi_di5",
-			.gpio = GPIO_DI5,
-			.mode = GPIO_MODE_IN,
+			.flags = GPIOD_IN,
 		},
 	},
 	[DI6] = {
 		.gpio = {
 			.name = "ionopi_di6",
-			.gpio = GPIO_DI6,
-			.mode = GPIO_MODE_IN,
+			.flags = GPIOD_IN,
 		},
 	},
 };
@@ -181,56 +157,49 @@ static struct DebouncedGpioBean gpioDI[] = {
 static struct GpioBean gpioO[] = {
 	[O1] = {
 		.name = "ionopi_o1",
-		.gpio = GPIO_O1,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 	[O2] = {
 		.name = "ionopi_o2",
-		.gpio = GPIO_O2,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 	[O3] = {
 		.name = "ionopi_o3",
-		.gpio = GPIO_O3,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 	[O4] = {
 		.name = "ionopi_o4",
-		.gpio = GPIO_O4,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 };
 
 static struct GpioBean gpioOC[] = {
 	[OC1] = {
 		.name = "ionopi_oc1",
-		.gpio = GPIO_OC1,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 	[OC2] = {
 		.name = "ionopi_oc2",
-		.gpio = GPIO_OC2,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 	[OC3] = {
 		.name = "ionopi_oc3",
-		.gpio = GPIO_OC3,
-		.mode = GPIO_MODE_OUT,
+		.flags = GPIOD_OUT_LOW,
 	},
 };
 
 static struct GpioBean gpioTtl[] = {
 	[TTL1] = {
-		.gpio = GPIO_TTL1,
+		.name = "ionopi_ttl1",
 	},
 	[TTL2] = {
-		.gpio = GPIO_TTL2,
+		.name = "ionopi_ttl2",
 	},
 	[TTL3] = {
-		.gpio = GPIO_TTL3,
+		.name = "ionopi_ttl3",
 	},
 	[TTL4] = {
-		.gpio = GPIO_TTL4,
+		.name = "ionopi_ttl4",
 	},
 };
 
@@ -1237,7 +1206,7 @@ static int mcp3204_spi_probe(struct spi_device *spi) {
 
 	mutex_init(&mcp3204_spi_data->lock);
 
-	pr_info("ionopi: - | mcp3204 probed\n");
+	pr_info(LOG_TAG "mcp3204 probed\n");
 
 	return 0;
 }
@@ -1252,7 +1221,7 @@ static void mcp3204_spi_remove(struct spi_device *spi) {
 	regulator_disable(data->reg);
 	mutex_destroy(&data->lock);
 
-	pr_info("ionopi: - | mcp3204 removed\n");
+	pr_info(LOG_TAG "mcp3204 removed\n");
 
 #if LINUX_VERSION_CODE < KERNEL_VERSION(6,0,0)
 	return 0;
@@ -1323,40 +1292,41 @@ static void cleanup(void) {
 	}
 }
 
-static int __init ionopi_init(void) {
+static int ionopi_init(struct platform_device *pdev) {
 	struct DeviceBean *db;
 	struct DeviceAttrBean *dab;
 	int i, di, ai;
 
-	pr_info("ionopi: - | init\n");
+	pr_info(LOG_TAG "init\n");
 
 	ateccAddDriver();
 
+	gpioSetPlatformDev(pdev);
+
 	if (spi_register_driver(&mcp3204_spi_driver)) {
-		pr_alert("ionopi: * | failed to register mcp3204 driver\n");
+		pr_err(LOG_TAG "failed to register mcp3204 driver\n");
 		goto fail;
 	}
 
 	if (gpioInit(&gpioLed)) {
-		pr_alert("ionopi: * | error setting up GPIO %d\n", gpioLed.gpio);
+		pr_err(LOG_TAG "error setting up GPIO %s\n", gpioLed.name);
 		goto fail;
 	}
 	for (i = 0; i < DI_SIZE; i++) {
 		if (gpioInitDebounce(&gpioDI[i])) {
-			pr_alert("ionopi: * | error setting up GPIO %d\n",
-					gpioDI[i].gpio.gpio);
+			pr_err(LOG_TAG "error setting up GPIO %s\n", gpioDI[i].gpio.name);
 			goto fail;
 		}
 	}
 	for (i = 0; i < O_SIZE; i++) {
 		if (gpioInit(&gpioO[i])) {
-			pr_alert("ionopi: * | error setting up GPIO %d\n", gpioO[i].gpio);
+			pr_err(LOG_TAG "error setting up GPIO %s\n", gpioO[i].name);
 			goto fail;
 		}
 	}
 	for (i = 0; i < OC_SIZE; i++) {
 		if (gpioInit(&gpioOC[i])) {
-			pr_alert("ionopi: * | error setting up GPIO %d\n", gpioOC[i].gpio);
+			pr_err(LOG_TAG "error setting up GPIO %s\n", gpioOC[i].name);
 			goto fail;
 		}
 	}
@@ -1371,7 +1341,7 @@ static int __init ionopi_init(void) {
 #endif
 
 	if (IS_ERR(pDeviceClass)) {
-		pr_alert("ionopi: * | failed to create device class\n");
+		pr_err(LOG_TAG "failed to create device class\n");
 		goto fail;
 	}
 
@@ -1380,7 +1350,7 @@ static int __init ionopi_init(void) {
 		db = &devices[di];
 		db->pDevice = device_create(pDeviceClass, NULL, 0, NULL, db->name);
 		if (IS_ERR(db->pDevice)) {
-			pr_alert("ionopi: * | failed to create device '%s'\n", db->name);
+			pr_err(LOG_TAG "failed to create device '%s'\n", db->name);
 			goto fail;
 		}
 
@@ -1388,7 +1358,7 @@ static int __init ionopi_init(void) {
 		while (db->devAttrBeans[ai].devAttr.attr.name != NULL) {
 			dab = &db->devAttrBeans[ai];
 			if (device_create_file(db->pDevice, &dab->devAttr)) {
-				pr_alert("ionopi: * | failed to create device file '%s/%s'\n",
+				pr_err(LOG_TAG "failed to create device file '%s/%s'\n",
 						db->name, dab->devAttr.attr.name);
 				goto fail;
 			}
@@ -1397,19 +1367,29 @@ static int __init ionopi_init(void) {
 		di++;
 	}
 
-	pr_info("ionopi: - | ready\n");
+	pr_info(LOG_TAG "ready\n");
 	return 0;
 
 	fail:
-	pr_alert("ionopi: * | init failed\n");
+	pr_err(LOG_TAG "init failed\n");
 	cleanup();
 	return -1;
 }
 
-static void __exit ionopi_exit(void) {
+static int ionopi_exit(struct platform_device *pdev) {
 	cleanup();
-	pr_info("ionopi: - | exit\n");
+	pr_info(LOG_TAG "exit\n");
+	return 0;
 }
 
-module_init( ionopi_init);
-module_exit( ionopi_exit);
+static struct platform_driver ionopi_driver = {
+	.probe = ionopi_init,
+	.remove = ionopi_exit,
+	.driver = {
+		.name = "ionopi_driver",
+		.owner = THIS_MODULE,
+		.of_match_table = ionopi_of_match,
+	}
+};
+
+module_platform_driver(ionopi_driver);
