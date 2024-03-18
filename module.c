@@ -36,7 +36,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.20");
+MODULE_VERSION("1.21");
 
 #define LOG_TAG "ionopi: "
 

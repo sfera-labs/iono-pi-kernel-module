@@ -2,9 +2,9 @@
 /plugin/;
 
 / {
-    compatible = "brcm,bcm2835";
-    
-    fragment@0 {
+compatible = "brcm,bcm2835";
+
+fragment@0 {
 		target-path = "/";
 		__overlay__ {
 			dios: dios@0 {
@@ -13,28 +13,28 @@
 				pinctrl-0 = <&dios_pins>;
 				status = "okay";
 				
-                ionopi_ttl1-gpios = <&gpio 4 0>;
-                ionopi_ttl2-gpios = <&gpio 26 0>;
-                ionopi_ttl3-gpios = <&gpio 20 0>;
-                ionopi_ttl4-gpios = <&gpio 21 0>;
-                ionopi_di1-gpios = <&gpio 16 0>;
-                ionopi_di2-gpios = <&gpio 19 0>;
-                ionopi_di3-gpios = <&gpio 13 0>;
-                ionopi_di4-gpios = <&gpio 12 0>;
-                ionopi_di5-gpios = <&gpio 6 0>;
-                ionopi_di6-gpios = <&gpio 5 0>;
-                ionopi_oc1-gpios = <&gpio 18 0>;
-                ionopi_oc2-gpios = <&gpio 25 0>;
-                ionopi_oc3-gpios = <&gpio 24 0>;
-                ionopi_o1-gpios = <&gpio 17 0>;
-                ionopi_o2-gpios = <&gpio 27 0>;
-                ionopi_o3-gpios = <&gpio 22 0>;
-                ionopi_o4-gpios = <&gpio 23 0>;
-                ionopi_led-gpios = <&gpio 7 0>;
+				ionopi_ttl1-gpios = <&gpio 4 0>;
+				ionopi_ttl2-gpios = <&gpio 26 0>;
+				ionopi_ttl3-gpios = <&gpio 20 0>;
+				ionopi_ttl4-gpios = <&gpio 21 0>;
+				ionopi_di1-gpios = <&gpio 16 0>;
+				ionopi_di2-gpios = <&gpio 19 0>;
+				ionopi_di3-gpios = <&gpio 13 0>;
+				ionopi_di4-gpios = <&gpio 12 0>;
+				ionopi_di5-gpios = <&gpio 6 0>;
+				ionopi_di6-gpios = <&gpio 5 0>;
+				ionopi_oc1-gpios = <&gpio 18 0>;
+				ionopi_oc2-gpios = <&gpio 25 0>;
+				ionopi_oc3-gpios = <&gpio 24 0>;
+				ionopi_o1-gpios = <&gpio 17 0>;
+				ionopi_o2-gpios = <&gpio 27 0>;
+				ionopi_o3-gpios = <&gpio 22 0>;
+				ionopi_o4-gpios = <&gpio 23 0>;
+				ionopi_led-gpios = <&gpio 7 0>;
 			};
 		};
 	};
-	
+
 	fragment@1 {
 		target = <&gpio>;
 		__overlay__ {
@@ -46,30 +46,38 @@
 		};
 	};
 
-    fragment@2 {
-        target = <&spidev0>;
-        __overlay__ {
+	fragment@2 {
+		target = <&spidev0>;
+		__overlay__ {
 			status = "disabled";
-        };
-    };
+		};
+	};
 
-    fragment@3 {
-        target = <&spi0>;
-        __overlay__ {
-            #address-cells = <1>;
-            #size-cells = <0>;
-            cs-gpios = <&gpio 8 0>;
-            status = "okay";
-
-            ionopi_mcp3204_00: mcp3204@0 {
-                compatible = "sferalabs,ionopi";
-                reg = <0>;
-                spi-max-frequency = <50000>;
-            };
-        };
-    };
+	fragment@3 {
+		target = <&spidev1>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
 
 	fragment@4 {
+		target = <&spi0>;
+		__overlay__ {
+			#address-cells = <1>;
+			#size-cells = <0>;
+			cs-gpios = <&gpio 8 0>;
+			num-chipselects = <1>;
+			status = "okay";
+			
+			ionopi_mcp3204_00: mcp3204@0 {
+				compatible = "sferalabs,ionopi";
+				reg = <0>;
+				spi-max-frequency = <50000>;
+			};
+		};
+	};
+
+	fragment@5 {
 		target = <&i2c_arm>;
 		__overlay__ {
 			#address-cells = <1>;
