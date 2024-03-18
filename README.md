@@ -53,6 +53,7 @@ Clone this repo:
 Make and install:
 
     cd iono-pi-kernel-module
+    make clean
     make
     sudo make install
     
