@@ -2,12 +2,12 @@
 /plugin/;
 
 / {
-compatible = "brcm,bcm2835";
+	compatible = "brcm,bcm2835";
 
 	fragment@0 {
 		target-path = "/";
 		__overlay__ {
-			dios: dios@0 {
+			dios: dios {
 				compatible = "sferalabs,ionopi";
 				pinctrl-names = "default";
 				pinctrl-0 = <&dios_pins>;
