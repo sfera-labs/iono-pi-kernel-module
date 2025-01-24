@@ -36,7 +36,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.22");
+MODULE_VERSION("1.23");
 
 #define LOG_TAG "ionopi: "
 
@@ -1298,8 +1298,6 @@ static int ionopi_init(struct platform_device *pdev) {
 	int i, di, ai;
 
 	pr_info(LOG_TAG "init\n");
-
-	ateccAddDriver();
 
 	gpioSetPlatformDev(pdev);
 
