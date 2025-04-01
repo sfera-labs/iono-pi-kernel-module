@@ -1,7 +1,7 @@
 /*
  * Iono Pi kernel module
  *
- *     Copyright (C) 2020-2024 Sfera Labs S.r.l.
+ *     Copyright (C) 2020-2025 Sfera Labs S.r.l.
  *
  *     For information, visit https://www.sferalabs.cc
  *
@@ -36,7 +36,7 @@
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.23");
+MODULE_VERSION("1.24");
 
 #define LOG_TAG "ionopi: "
 
@@ -1374,10 +1374,16 @@ static int ionopi_init(struct platform_device *pdev) {
 	return -1;
 }
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 12, 0)
+static void ionopi_exit(struct platform_device *pdev) {
+#else
 static int ionopi_exit(struct platform_device *pdev) {
-	cleanup();
-	pr_info(LOG_TAG "exit\n");
-	return 0;
+#endif
+  cleanup();
+  pr_info(LOG_TAG "exit\n");
+#if LINUX_VERSION_CODE < KERNEL_VERSION(6, 12, 0)
+  return 0;
+#endif
 }
 
 static struct platform_driver ionopi_driver = {
