@@ -1,29 +1,6 @@
-# Iono Pi kernel module
+# Iono Pi driver kernel module
 
-Kernel module for using [Iono Pi](https://www.sferalabs.cc/product/iono-pi/), the Raspberry Pi industrial PLC, via sysfs files.
-
-For example, from the shell:
-
-Toggle a relay:
-
-    $ echo F > /sys/class/ionopi/relay/o1
-    
-Read the voltage on AI1:
-
-    $ cat /sys/class/ionopi/analog_in/ai1_mv
-    
-Or using Python:
-
-    f = open('/sys/class/ionopi/relay/o1', 'w')
-    f.write('F')
-    f.close()
-    print('Relay O1 switched')
-
-    f = open('/sys/class/ionopi/analog_in/ai1_mv', 'r')
-    val = f.read().strip()
-    f.close()
-    print('AI1: ' + val + ' mv')
-
+Raspberry Pi OS (Debian) Kernel module for [Iono Pi](https://www.sferalabs.cc/product/iono-pi/), the Raspberry Pi industrial PLC.
 
 ## Compile and Install
 
@@ -37,14 +14,10 @@ Make sure your system is updated:
 If you are using Iono Pi with Raspberry Pi **4** and a **32-bit** OS, add to `/boot/firmware/config.txt` (`/boot/config.txt` in older versions) the following line: [[why?](https://github.com/raspberrypi/firmware/issues/1795)]
 
     arm_64bit=0
-    
+
 Reboot:
 
     sudo reboot
-    
-After reboot, install git and the Raspberry Pi kernel headers:
-
-    sudo apt install git raspberrypi-kernel-headers
 
 Clone this repo:
 
@@ -70,7 +43,7 @@ If you want to use TTL1 as 1-Wire bus, add this line too:
 
     dtoverlay=w1-gpio
 
-Optionally, to be able to use the `/sys/class/ionopi/` files not as super user, create a new group "ionopi" and set it as the module owner group by adding an udev rule:
+Optionally, to access the sysfs interfcae without superuser privileges, create a new group "ionopi" and set it as the module owner group by adding an **udev** rule:
 
     sudo groupadd ionopi
     sudo cp 99-ionopi.rules /etc/udev/rules.d/
@@ -85,11 +58,31 @@ Reboot:
 
 ## Usage
 
-After installation, you will find all the available devices under the directory `/sys/class/ionopi/`.
+After installation, you will find the sysfs interface in the `/sys/class/ionopi/` directory, which provides virtual files that can be read and/or written to, enabling easy monitoring and control of Iono Pi’s I/O and other functionalities.
 
-The following paragraphs list all the possible devices (directories) and files coresponding to Iono Pi's features. 
+### Usage examples
 
-You can read and/or write to these files to configure, monitor and control your Iono Pi.
+From the shell, toggle a relay:
+
+    $ echo F > /sys/class/ionopi/relay/o1
+    
+Read the voltage on AI1:
+
+    $ cat /sys/class/ionopi/analog_in/ai1_mv
+    
+Or using Python:
+
+    f = open('/sys/class/ionopi/relay/o1', 'w')
+    f.write('F')
+    f.close()
+    print('Relay O1 switched')
+
+    f = open('/sys/class/ionopi/analog_in/ai1_mv', 'r')
+    val = f.read().strip()
+    f.close()
+    print('AI1: ' + val + ' mv')
+
+The following paragraphs list all the available devices (directories) and files coresponding to Iono Pi's features.
 
 ### Analog Inputs - `/sys/class/ionopi/analog_in/`
 
