@@ -27,13 +27,30 @@ Clone this repo:
 
     git clone --depth 1 https://github.com/sfera-labs/iono-pi-kernel-module.git
 
-Make and install:
+Make and install, alternative 1: For this kernel only
+
+* As an alternative, the module can be automatically built whenever the kernel is upgraded. For this, please see section DKMS below.
 
     cd iono-pi-kernel-module
     make clean
     make
     sudo make install
-    
+
+Make and install, alternative 2: Using DKMS
+
+[DKMS|(https://en.wikipedia.org/wiki/Dynamic_Kernel_Module_Support) can be used to keep the module updated whenever the kernel is updated using apt upgrade.
+
+Note: 
+First, create a symlink to the source directory
+
+    sudo ln -s "$(pwd)" /usr/src/ionopi-1.24
+
+where "1.24" should correspond to the actual version. Then use the following commands to add, build and install the module:
+
+    sudo dkms add -m ionopi -v 1.24
+    sudo dkms build -m ionopi -v 1.24
+    sudo dkms install -m ionopi -v 1.24
+
 Compile the Device Tree and install it:
 
     dtc -@ -Hepapr -I dts -O dtb -o ionopi.dtbo ionopi.dts
@@ -59,6 +76,8 @@ and add your user to the group, e.g., for user "pi":
 Reboot:
 
     sudo reboot
+
+
 
 ## Usage
 
