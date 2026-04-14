@@ -1,4 +1,6 @@
-/DEV-*
+/_DEV
+
+.vscode/
 
 .settings/
 .project
