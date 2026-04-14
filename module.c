@@ -33,11 +33,6 @@
 #define AI3_MCP_CHANNEL 	2
 #define AI4_MCP_CHANNEL 	3
 
-MODULE_LICENSE("GPL");
-MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
-MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.24");
-
 #define LOG_TAG "ionopi: "
 
 struct DeviceAttrBean {
@@ -1010,6 +1005,106 @@ static struct DeviceAttrBean devAttrBeansWiegand[] = {
 	{ }
 };
 
+static struct DeviceAttrBean devAttrBeansDigitalIO[] = {
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl1_mode",
+				.mode = 0660,
+			},
+			.show = devAttrGpioMode_show,
+			.store = devAttrGpioMode_store,
+		},
+		.gpio = &gpioTtl[TTL1],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl2_mode",
+				.mode = 0660,
+			},
+			.show = devAttrGpioMode_show,
+			.store = devAttrGpioMode_store,
+		},
+		.gpio = &gpioTtl[TTL2],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl3_mode",
+				.mode = 0660,
+			},
+			.show = devAttrGpioMode_show,
+			.store = devAttrGpioMode_store,
+		},
+		.gpio = &gpioTtl[TTL3],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl4_mode",
+				.mode = 0660,
+			},
+			.show = devAttrGpioMode_show,
+			.store = devAttrGpioMode_store,
+		},
+		.gpio = &gpioTtl[TTL4],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl1",
+				.mode = 0660,
+			},
+			.show = devAttrGpio_show,
+			.store = devAttrGpio_store,
+		},
+		.gpio = &gpioTtl[TTL1],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl2",
+				.mode = 0660,
+			},
+			.show = devAttrGpio_show,
+			.store = devAttrGpio_store,
+		},
+		.gpio = &gpioTtl[TTL2],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl3",
+				.mode = 0660,
+			},
+			.show = devAttrGpio_show,
+			.store = devAttrGpio_store,
+		},
+		.gpio = &gpioTtl[TTL3],
+	},
+
+	{
+		.devAttr = {
+			.attr = {
+				.name = "ttl4",
+				.mode = 0660,
+			},
+			.show = devAttrGpio_show,
+			.store = devAttrGpio_store,
+		},
+		.gpio = &gpioTtl[TTL4],
+	},
+
+	{ }
+};
+
 static struct DeviceAttrBean devAttrBeansAtecc[] = {
 	{
 		.devAttr = {
@@ -1054,6 +1149,11 @@ static struct DeviceBean devices[] = {
 	{
 		.name = "wiegand",
 		.devAttrBeans = devAttrBeansWiegand,
+	},
+
+	{
+		.name = "digital_io",
+		.devAttrBeans = devAttrBeansDigitalIO,
 	},
 
 	{
@@ -1290,6 +1390,9 @@ static void cleanup(void) {
 	for (i = 0; i < OC_SIZE; i++) {
 		gpioFree(&gpioOC[i]);
 	}
+	for (i = 0; i < TTL_SIZE; i++) {
+		gpioFree(&gpioTtl[i]);
+	}
 }
 
 static int ionopi_init(struct platform_device *pdev) {
@@ -1395,5 +1498,10 @@ static struct platform_driver ionopi_driver = {
 		.of_match_table = ionopi_of_match,
 	}
 };
+
+MODULE_LICENSE("GPL");
+MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
+MODULE_DESCRIPTION("Iono Pi driver module");
+MODULE_VERSION("1.25");
 
 module_platform_driver(ionopi_driver);

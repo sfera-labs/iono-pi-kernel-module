@@ -147,6 +147,19 @@ The debounce state of each digital input at system start is UNDEFINED (-1), beca
 |oc&lt;N&gt;|R/W|1|Open collector OC&lt;N&gt; closed|
 |oc&lt;N&gt;|W|F|Flip open collector OC&lt;N&gt;'s state|
 
+### Digital I/O TTLx - `/sys/class/ionopi/digital_io/`
+
+|File|R/W|Value|Description|
+|----|:---:|:-:|-----------|
+|ttl&lt;N&gt;_mode|R/W|x|TTL &lt;N&gt; (1 - 4) line not controlled by kernel module|
+|ttl&lt;N&gt;_mode|R/W|in|TTL &lt;N&gt; (1 - 4) line set as input|
+|ttl&lt;N&gt;_mode|R/W|out|TTL &lt;N&gt; (1 - 4) line set as output|
+|ttl&lt;N&gt;|R(/W)|0|TTL &lt;N&gt; (1 - 4) line low. Writable only in output mode|
+|ttl&lt;N&gt;|R(/W)|1|TTL &lt;N&gt; (1 - 4) line high. Writable only in output mode|
+
+TTL lines used by a Wiegand interface cannot be set to `in` or `out` mode while that interface is enabled.
+Similarly, Wiegand interface enabling is denied when one of its TTL lines is configured in `in` or `out` mode.
+
 ### Wiegand - `/sys/class/ionopi/wiegand/`
 
 You can use the TTL lines as Wiegand interfaces for keypads or card reader. You can connect up to two Wiegand devices using TTL1/TTL2 respctively fot the D0/D1 lines of the first device (w1) and TTL3/TTL4 for D0/D1 of the second device (w2).
