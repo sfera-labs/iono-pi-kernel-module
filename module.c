@@ -1502,6 +1502,6 @@ static struct platform_driver ionopi_driver = {
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Sfera Labs - http://sferalabs.cc");
 MODULE_DESCRIPTION("Iono Pi driver module");
-MODULE_VERSION("1.25");
+MODULE_VERSION(IONOPI_MODULE_VERSION);
 
 module_platform_driver(ionopi_driver);

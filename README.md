@@ -19,36 +19,50 @@ Reboot:
 
     sudo reboot
 
-After reboot, install git and the kernel headers:
- 
-     sudo apt install git linux-headers-$(uname -r)
+After reboot, install required tools:
+
+    sudo apt install git device-tree-compiler dkms linux-headers-$(uname -r)
 
 Clone this repo:
 
     git clone --depth 1 https://github.com/sfera-labs/iono-pi-kernel-module.git
-
-Make and install:
-
     cd iono-pi-kernel-module
+
+### Recommended installation mode: DKMS
+
+This is the recommended mode. It automatically rebuilds and reinstalls the module when new kernel versions are installed.
+
+Register, build and install with DKMS:
+
+    sudo dkms add .
+    sudo dkms build -m ionopi -v $(cat VERSION)
+    sudo dkms install -m ionopi -v $(cat VERSION)
+
+### Advanced installation mode: manual make install (running kernel only)
+
+Use this only if you specifically want to install for the current running kernel version only.
+
     make clean
     make
     sudo make install
-    
+
+Manual mode does not provide automatic rebuild on kernel upgrades.
+
+### Enable overlay at boot
+
 Add to `/boot/firmware/config.txt` the following line:
 
     dtoverlay=ionopi
-    
+
 If you want to use TTL1 as 1-Wire bus, add this line too:
 
     dtoverlay=w1-gpio
 
-Optionally, to access the sysfs interface without superuser privileges, create a new group "ionopi" and set it as the module owner group by adding an **udev** rule:
+### Optional non-root access to `/sys/class/ionopi`
+
+The install process places `99-ionopi.rules`, which sets owner group `ionopi` for sysfs entries. To access the sysfs interface without superuser privileges, create the group and add your user, e.g. for user "pi":
 
     sudo groupadd ionopi
-    sudo cp 99-ionopi.rules /etc/udev/rules.d/
-
-and add your user to the group, e.g., for user "pi":
-
     sudo usermod -a -G ionopi pi
 
 Reboot:
