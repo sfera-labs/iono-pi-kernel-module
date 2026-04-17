@@ -1,5 +1,12 @@
-SOURCE_DIR := $(if $(src),$(src),$(CURDIR))
+SOURCE_DIR ?= $(if $(src),$(src),$(CURDIR))
+MODULE_NAME ?= $(strip $(shell cat $(SOURCE_DIR)/MODULE_NAME))
 MODULE_VERSION := $(strip $(shell cat $(SOURCE_DIR)/VERSION))
+ifeq ($(strip $(MODULE_VERSION_DEFINE)),)
+MODULE_VERSION_DEFINE := $(shell echo "$(MODULE_NAME)" | tr '[:lower:]-' '[:upper:]_')_MODULE_VERSION
+endif
+ifeq ($(strip $(DTS_NAME)),)
+DTS_NAME := $(MODULE_NAME)
+endif
 ccflags-y += -D$(MODULE_VERSION_DEFINE)=\"$(MODULE_VERSION)\"
 
 KVER ?= $(if $(KERNELRELEASE),$(KERNELRELEASE),$(shell uname -r))
