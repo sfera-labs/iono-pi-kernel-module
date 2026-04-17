@@ -7,6 +7,11 @@ endif
 ifeq ($(strip $(DTS_NAME)),)
 DTS_NAME := $(MODULE_NAME)
 endif
+
+obj-m += $(MODULE_NAME).o
+$(MODULE_NAME)-objs := $(MODULE_MAIN_OBJ)
+$(foreach m,$(COMMON_MODULES),$(eval $(MODULE_NAME)-objs += commons/$(m)/$(m).o))
+
 ccflags-y += -D$(MODULE_VERSION_DEFINE)=\"$(MODULE_VERSION)\"
 
 KVER ?= $(if $(KERNELRELEASE),$(KERNELRELEASE),$(shell uname -r))
