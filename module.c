@@ -12,10 +12,10 @@
  *
  */
 
-#include "commons/commons.h"
-#include "gpio/gpio.h"
-#include "wiegand/wiegand.h"
-#include "atecc/atecc.h"
+#include "commons/utils/utils.h"
+#include "commons/gpio/gpio.h"
+#include "commons/wiegand/wiegand.h"
+#include "commons/atecc/atecc.h"
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/init.h>

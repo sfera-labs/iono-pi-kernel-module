@@ -1,10 +1,10 @@
 obj-m += ionopi.o
 
 ionopi-objs := module.o
-ionopi-objs += commons/commons.o
-ionopi-objs += gpio/gpio.o
-ionopi-objs += wiegand/wiegand.o
-ionopi-objs += atecc/atecc.o
+ionopi-objs += commons/utils/utils.o
+ionopi-objs += commons/gpio/gpio.o
+ionopi-objs += commons/wiegand/wiegand.o
+ionopi-objs += commons/atecc/atecc.o
 
 SOURCE_DIR := $(if $(src),$(src),$(CURDIR))
 IONOPI_VERSION := $(strip $(shell cat $(SOURCE_DIR)/VERSION))
