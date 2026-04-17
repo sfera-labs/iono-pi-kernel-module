@@ -26,6 +26,7 @@ After reboot, install required tools:
 Clone this repo:
 
     git clone --depth 1 https://github.com/sfera-labs/iono-pi-kernel-module.git
+    
     cd iono-pi-kernel-module
 
 ### Recommended installation mode: DKMS
