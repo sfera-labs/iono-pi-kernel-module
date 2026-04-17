@@ -1,14 +1,6 @@
-obj-m += ionopi.o
-
-ionopi-objs := module.o
-ionopi-objs += commons/utils/utils.o
-ionopi-objs += commons/gpio/gpio.o
-ionopi-objs += commons/wiegand/wiegand.o
-ionopi-objs += commons/atecc/atecc.o
-
-MODULE_NAME := ionopi
-MODULE_VERSION_DEFINE := IONOPI_MODULE_VERSION
-DTS_NAME := ionopi
+MODULE_MAIN_OBJ := module.o
+COMMON_MODULES := utils gpio wiegand atecc
 UDEV_RULES := 99-ionopi.rules
 
-include commons/scripts/kmod-common.mk
+SOURCE_DIR := $(if $(src),$(src),$(CURDIR))
+include $(SOURCE_DIR)/commons/scripts/kmod-common.mk
