@@ -11,6 +11,7 @@ endif
 obj-m += $(MODULE_NAME).o
 $(MODULE_NAME)-objs := $(MODULE_MAIN_OBJ)
 $(foreach m,$(COMMON_MODULES),$(eval $(MODULE_NAME)-objs += commons/$(m)/$(m).o))
+$(MODULE_NAME)-objs += $(MODULE_EXTRA_OBJS)
 
 ccflags-y += -D$(MODULE_VERSION_DEFINE)=\"$(MODULE_VERSION)\"
 
