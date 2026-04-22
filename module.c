@@ -1178,7 +1178,8 @@ struct mcp3204_data {
 
 static struct mcp3204_data *mcp3204_spi_data;
 
-struct GpioBean* gpioGetBean(struct device *dev, struct device_attribute *attr) {
+struct GpioBean* gpioGetBean(struct device *dev, struct device_attribute *attr,
+                             const char **vals) {
 	struct DeviceAttrBean *dab;
 	dab = container_of(attr, struct DeviceAttrBean, devAttr);
 	if (dab == NULL) {
