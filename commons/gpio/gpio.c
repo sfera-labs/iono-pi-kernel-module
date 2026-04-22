@@ -148,6 +148,7 @@ int gpioInitDebounce(struct DebouncedGpioBean *d) {
 void gpioFree(struct GpioBean *g) {
   if (g->desc != NULL && !IS_ERR(g->desc)) {
     gpiod_put(g->desc);
+	g->desc = NULL;
   }
 }
 
