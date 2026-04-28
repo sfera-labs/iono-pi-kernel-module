@@ -1,0 +1,14 @@
+name: Build Kernel Module
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: sferalabs/sl-kmod-commons/.github/workflows/kmod-build.yml@main
+    with:
+      kernel_version: '6.12.75+rpt-rpi-2712'
+      module_path: '.'
