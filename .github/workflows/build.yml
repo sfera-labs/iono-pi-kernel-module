@@ -7,32 +7,34 @@ on:
   workflow_dispatch:
 
 jobs:
+
   detect:
     runs-on: ubuntu-latest
     outputs:
-      branches: ${{ steps.branches.outputs.json }}
+      # branches: ${{ steps.branches.outputs.json }}
+      branches: '["rpi-6.12.y"]'
       defconfig_arch_matrix: ${{ steps.matrix.outputs.json }}
 
     steps:
-      - name: Detect kernel branches
-        id: branches
-        run: |
-          N=3
-
-          BRANCHES=$(git ls-remote --heads https://github.com/raspberrypi/linux.git \
-            | grep 'refs/heads/rpi-' \
-            | sed 's|.*/||' \
-            | sort -V \
-            | tail -n $N)
-
-          DEFAULT=$(git ls-remote --symref https://github.com/raspberrypi/linux.git HEAD \
-            | grep '^ref:' \
-            | sed 's#.*/##')
-
-          ALL=$(printf "%s\n%s\n" "$DEFAULT" "$BRANCHES" | sort -u)
-          JSON=$(printf '%s\n' "$ALL" | jq -R . | jq -s .)
-
-          echo "json=$(echo "$JSON" | jq -c .)" >> $GITHUB_OUTPUT
+      # - name: Detect kernel branches
+      #   id: branches
+      #   run: |
+      #     N=3
+      #
+      #     BRANCHES=$(git ls-remote --heads https://github.com/raspberrypi/linux.git \
+      #       | grep 'refs/heads/rpi-' \
+      #       | sed 's|.*/||' \
+      #       | sort -V \
+      #       | tail -n $N)
+      #
+      #     DEFAULT=$(git ls-remote --symref https://github.com/raspberrypi/linux.git HEAD \
+      #       | grep '^ref:' \
+      #       | awk '{print $2}' | sed 's|refs/heads/||')
+      #
+      #     ALL=$(printf "%s\n%s\n" "$DEFAULT" "$BRANCHES" | sort -u)
+      #     JSON=$(printf '%s\n' "$ALL" | jq -R . | jq -s .)
+      #
+      #     echo "json=$(echo "$JSON" | jq -c .)" >> $GITHUB_OUTPUT
 
       - name: Detect defconfig/arch matrix
         id: matrix
