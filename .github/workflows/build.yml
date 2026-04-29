@@ -10,6 +10,6 @@ jobs:
   build:
     uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build.yml@main
     with:
-      arches: '["arm64","armhf"]'
+      archs: '["arm64","armhf"]'
       kernel_count: 3
       module_path: '.'
