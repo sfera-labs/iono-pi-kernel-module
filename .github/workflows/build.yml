@@ -7,56 +7,9 @@ on:
   workflow_dispatch:
 
 jobs:
-
-  detect:
-    runs-on: ubuntu-latest
-    outputs:
-      # branches: ${{ steps.branches.outputs.json }}
-      branches: '["rpi-6.12.y"]'
-      defconfig_arch_matrix: ${{ steps.matrix.outputs.json }}
-
-    steps:
-      # - name: Detect kernel branches
-      #   id: branches
-      #   run: |
-      #     N=3
-      #
-      #     BRANCHES=$(git ls-remote --heads https://github.com/raspberrypi/linux.git \
-      #       | grep 'refs/heads/rpi-' \
-      #       | sed 's|.*/||' \
-      #       | sort -V \
-      #       | tail -n $N)
-      #
-      #     DEFAULT=$(git ls-remote --symref https://github.com/raspberrypi/linux.git HEAD \
-      #       | grep '^ref:' \
-      #       | awk '{print $2}' | sed 's|refs/heads/||')
-      #
-      #     ALL=$(printf "%s\n%s\n" "$DEFAULT" "$BRANCHES" | sort -u)
-      #     JSON=$(printf '%s\n' "$ALL" | jq -R . | jq -s .)
-      #
-      #     echo "json=$(echo "$JSON" | jq -c .)" >> $GITHUB_OUTPUT
-
-      - name: Detect defconfig/arch matrix
-        id: matrix
-        run: |
-          git clone --depth=1 https://github.com/raspberrypi/linux.git kernel
-
-          (
-            ls kernel/arch/arm/configs/bcm*_defconfig 2>/dev/null \
-              | xargs -n1 basename \
-              | jq -R '{defconfig: ., arch: "arm"}'
-
-            ls kernel/arch/arm64/configs/bcm*_defconfig 2>/dev/null \
-              | xargs -n1 basename \
-              | jq -R '{defconfig: ., arch: "arm64"}'
-          ) | jq -s . > matrix.json
-
-          echo "json=$(jq -c . matrix.json)" >> $GITHUB_OUTPUT
-
   build:
-    needs: detect
     uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build.yml@main
     with:
-      kernel_branches: ${{ needs.detect.outputs.branches }}
-      defconfig_arch_matrix: ${{ needs.detect.outputs.defconfig_arch_matrix }}
+      arches: '["arm64","armhf"]'
+      kernel_count: 3
       module_path: '.'
