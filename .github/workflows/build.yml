@@ -11,4 +11,5 @@ jobs:
     uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build.yml@main
     with:
       newest_lines_count: 3
+      build_families: 'rpi,ubuntu'
       module_path: '.'
