@@ -1,0 +1,16 @@
+name: Kernel Compatibility (Firmware)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build-git.yml@main
+    with:
+      sources: 'rpi-firmware'
+      streams: 'master,next'
+      module_path: '.'
+      fail_on_skip: true

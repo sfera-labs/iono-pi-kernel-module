@@ -1,0 +1,16 @@
+name: Kernel Compatibility (Packaged)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build-apt.yml@main
+    with:
+      sources: 'rpi-archive'
+      streams: 'stable,oldstable'
+      module_path: '.'
+      fail_on_skip: true
