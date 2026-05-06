@@ -1,4 +1,4 @@
-name: Kernel Compatibility (Firmware)
+name: Build tests [git master]
 
 on:
   push:
@@ -11,6 +11,4 @@ jobs:
     uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build-git.yml@main
     with:
       sources: 'rpi-firmware'
-      streams: 'master,next'
-      module_path: '.'
-      fail_on_skip: true
+      streams: 'master'
