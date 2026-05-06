@@ -1,4 +1,4 @@
-name: Build tests [git stable]
+name: Build tests [git next]
 
 on:
   push:
