@@ -1,6 +1,7 @@
 #include "gpio.h"
 
 #include <linux/delay.h>
+#include <linux/hrtimer.h>
 #include <linux/interrupt.h>
 
 #include "../utils/utils.h"
