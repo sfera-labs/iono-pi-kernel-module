@@ -25,8 +25,13 @@ void wiegandInit(struct WiegandBean *w) {
 	w->pulseIntervalMax_usec = 2700;
 	w->noise = 0;
 	w->id = '0' + (++wCount);
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 15, 0)
+	hrtimer_setup(&w->timer, wiegandTimerHandler, CLOCK_MONOTONIC,
+				  HRTIMER_MODE_REL);
+#else
 	hrtimer_init(&w->timer, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
 	w->timer.function = &wiegandTimerHandler;
+#endif
 }
 
 static void wiegandReset(struct WiegandBean *w) {
