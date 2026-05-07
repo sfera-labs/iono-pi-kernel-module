@@ -1,4 +1,4 @@
-name: Build tests [git master]
+name: "Build tests [firmware]"
 
 on:
   push:
@@ -11,4 +11,4 @@ jobs:
     uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build-git.yml@main
     with:
       sources: 'rpi-firmware'
-      streams: 'master'
+      streams: 'master,stable,next'

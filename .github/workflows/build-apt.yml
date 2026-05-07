@@ -1,4 +1,4 @@
-name: Build tests [apt stable]
+name: Build tests [stable oldstable]
 
 on:
   push:
@@ -11,4 +11,4 @@ jobs:
     uses: sfera-labs/sl-kmod-commons/.github/workflows/kmod-build-apt.yml@main
     with:
       sources: 'rpi-archive'
-      streams: 'stable'
+      streams: 'stable,oldstable'
