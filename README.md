@@ -1,6 +1,6 @@
 # Iono Pi driver kernel module
 
-Raspberry Pi OS (Debian) Kernel module for [Iono Pi](https://www.sferalabs.cc/product/iono-pi/), the Raspberry Pi industrial PLC.
+Raspberry Pi OS (Debian) Kernel module for [Iono Pi](https://www.sferalabs.cc/product/iono-pi-v2/), the Raspberry Pi industrial PLC.
 
 [![Build tests [stable oldstable]](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-apt.yml/badge.svg)](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-apt.yml)
 [![Build tests [firmware]](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-fw.yml/badge.svg)](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-fw.yml)
