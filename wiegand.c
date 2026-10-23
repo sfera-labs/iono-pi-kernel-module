@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+
 #include "wiegand.h"
 #include "../utils/utils.h"
 #include <linux/interrupt.h>
