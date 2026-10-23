@@ -1,15 +1,7 @@
+// SPDX-License-Identifier: GPL-2.0-only
 /*
  * Iono Pi kernel module
- *
- *     Copyright (C) 2020-2025 Sfera Labs S.r.l.
- *
- *     For information, visit https://www.sferalabs.cc
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * LICENSE.txt file for more details.
- *
+ * Copyright (C) 2020-2026 Sfera Labs S.r.l.
  */
 
 #include "commons/utils/utils.h"
