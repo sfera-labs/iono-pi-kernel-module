@@ -1,81 +1,38 @@
 # Iono Pi driver kernel module
 
-Raspberry Pi OS (Debian) Kernel module for [Iono Pi](https://www.sferalabs.cc/product/iono-pi-v2/), the Raspberry Pi industrial PLC.
+Debian-based Linux kernel module for [Iono Pi](https://www.sferalabs.cc/product/iono-pi-v2/), the Raspberry Pi industrial PLC.
 
 [![Build tests [stable oldstable]](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-apt.yml/badge.svg)](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-apt.yml)
 [![Build tests [firmware]](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-fw.yml/badge.svg)](https://github.com/sfera-labs/iono-pi-kernel-module/actions/workflows/build-fw.yml)
 
 ## Installation
 
-*For installation on Ubuntu [read this](https://github.com/sfera-labs/knowledge-base/blob/main/raspberrypi/kernel-modules-ubuntu.md).*
+For source-based installation, see this [installation guide](https://github.com/sfera-labs/sl-kmod-commons/blob/main/INSTALLATION.md).
 
-Make sure your system is updated:
+If the Sfera Labs APT repository is not configured yet, [add the repository and install its keyring](https://github.com/sfera-labs/apt#install).
+
+Install the package:
 
     sudo apt update
-    sudo apt upgrade
+    sudo apt install ionopi-dkms
 
-If you are using Iono Pi with Raspberry Pi **4** and a **32-bit** OS, add to `/boot/firmware/config.txt` the following line: [[why?](https://github.com/raspberrypi/firmware/issues/1795)]
+The package registers the module with DKMS, which builds it for kernels with matching headers and rebuilds it when new kernel headers are installed. It also installs the device-tree overlays and udev rules.
 
-    arm_64bit=0
-
-Reboot:
-
-    sudo reboot
-
-After reboot, install required tools:
-
-    sudo apt install git device-tree-compiler dkms linux-headers-$(uname -r)
-
-Clone this repo:
-
-    git clone --depth 1 https://github.com/sfera-labs/iono-pi-kernel-module.git
-    
-    cd iono-pi-kernel-module
-
-### Recommended installation mode: DKMS
-
-This is the recommended mode. It automatically rebuilds and reinstalls the module when new kernel versions are installed.
-
-Register, build and install with DKMS:
-
-    sudo dkms add .
-    sudo dkms build -m $(cat MODULE_NAME) -v $(cat VERSION)
-    sudo dkms install -m $(cat MODULE_NAME) -v $(cat VERSION)
-
-### Alternative installation mode: manual install for running kernel only
-
-<details>
-
-<summary>Show</summary>
-
-Use this only if you specifically want to install for the current running kernel version only.
-
-    make clean
-    make
-    sudo make install
-
-Manual mode does not provide automatic rebuild on kernel upgrades.
-
-</details>
-
-### Enable overlay at boot
-
-Add to `/boot/firmware/config.txt` the following line:
+Select the overlay by adding this to `/boot/firmware/config.txt`:
 
     dtoverlay=ionopi
 
-If you want to use TTL1 as 1-Wire bus, add this line too:
+If you want to use TTL1 as a 1-Wire bus, add this line too:
 
     dtoverlay=w1-gpio
 
-### Optional non-root access to `/sys/class/ionopi`
+For Iono Pi with Raspberry Pi 4, on legacy 32-bit Raspberry Pi OS versions that support this option, `arm_64bit=0` may be required. Add it to the same `config.txt` file. [[why?](https://github.com/raspberrypi/firmware/issues/1795)]
 
-The install process places `99-ionopi.rules`, which sets owner group `ionopi` for sysfs entries. To access the sysfs interface without superuser privileges, create the group and add your user, e.g. for user "pi":
+The install process creates the `ionopi` group and places `99-ionopi.rules`, which sets it as the owner group for sysfs entries. To access the sysfs interface without superuser privileges, add your user to the group, e.g. for user "pi":
 
-    sudo groupadd ionopi
     sudo usermod -a -G ionopi pi
 
-Reboot:
+Finally, reboot to apply the configuration:
 
     sudo reboot
 
